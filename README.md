@@ -1,10 +1,10 @@
-# StartupOS-app
+# StartupOS
 
 A modern startup management platform that helps teams manage expenses, income, meetings, tasks, suppliers, invoices, and business operations in one place.
 
 Persian:
 
-StartupOS ورک‌اسپیس یک پلتفرم جامع برای مدیریت کسب‌وکار و استارتاپ است که با هدف ساده‌سازی فرآیندهای روزانه طراحی شده است.
+پروژه StartupOS ورک‌اسپیس یک پلتفرم جامع برای مدیریت کسب‌وکار و استارتاپ است که با هدف ساده‌سازی فرآیندهای روزانه طراحی شده است.
 
 این سامانه به جای استفاده از چندین نرم‌افزار مختلف، تمامی ابزارهای مورد نیاز تیم را در یک محیط یکپارچه ارائه می‌کند.
 
@@ -46,7 +46,7 @@ StartupOS ورک‌اسپیس یک پلتفرم جامع برای مدیریت �
 
 English:
 
-## Qti Workspace
+## StartupOS
 
 Qti Workspace is an all-in-one startup management platform designed to simplify daily business operations.
 
