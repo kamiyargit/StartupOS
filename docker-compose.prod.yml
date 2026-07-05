@@ -1,0 +1,93 @@
+# Production stack for expenses.cuty.center — isolated from cuty-platform.
+# Deploy path on VPS: /opt/cuty-expenses (NOT /opt/cuty-platform).
+# Proxy joins cuty-platform Docker network only; no host 80/443 binding.
+name: cuty-expenses
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: cuty-expenses-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cuty}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-cuty_financial}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cuty} -d ${POSTGRES_DB:-cuty_financial}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    image: cuty-expenses-app:latest
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:-node:22-alpine}
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmmirror.com/}
+        NPM_REGISTRIES: ${NPM_REGISTRIES:-}
+    container_name: cuty-expenses-app
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cuty}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-cuty_financial}
+      AUTH_SECRET: ${AUTH_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-https://expenses.cuty.center}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@cuty.center}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      UPLOAD_DIR: /data/uploads
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-10}
+    volumes:
+      - upload_data:/data/uploads
+      - ./docker/entrypoint.prod.sh:/entrypoint.sh:ro
+    networks:
+      - internal
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"require('http').get('http://127.0.0.1:3000/login',(r)=>{r.resume();process.exit(r.statusCode<500?0:1)}).on('error',()=>process.exit(1))\"",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    command: ["/bin/sh", "/entrypoint.sh"]
+
+  proxy:
+    image: ${NGINX_IMAGE:-nginx:alpine}
+    container_name: cuty-expenses-proxy
+    restart: unless-stopped
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      internal: {}
+      cuty-platform:
+        aliases:
+          - cuty-expenses-proxy
+    depends_on:
+      app:
+        condition: service_healthy
+
+networks:
+  internal:
+    driver: bridge
+  cuty-platform:
+    external: true
+    name: ${CUTY_DOCKER_NETWORK:-cuty-platform_cuty-network}
+
+volumes:
+  postgres_data:
+    name: cuty-expenses-postgres-data
+  upload_data:
+    name: cuty-expenses-upload-data

@@ -1,0 +1,10 @@
+FROM node:22-alpine
+RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
+WORKDIR /app
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY prisma ./prisma
+COPY scripts ./scripts
+RUN pnpm install --frozen-lockfile
+COPY . .
+EXPOSE 3000
+CMD ["sh", "-c", "node scripts/apply-radix-compose-refs-patch.mjs && npx prisma db push && npx prisma generate && npx tsx prisma/seed.ts && npx next dev --hostname 0.0.0.0 --webpack"]

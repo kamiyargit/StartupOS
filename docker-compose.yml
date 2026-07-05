@@ -1,0 +1,48 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cuty
+      POSTGRES_PASSWORD: cuty
+      POSTGRES_DB: cuty_financial
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cuty -d cuty_financial"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    restart: unless-stopped
+    ports:
+      - "5568:3000"
+    environment:
+      DATABASE_URL: postgresql://cuty:cuty@db:5432/cuty_financial
+      AUTH_SECRET: dev-secret-change-in-production-min-32-chars
+      NEXTAUTH_URL: http://localhost:5568
+      ADMIN_USERNAME: admin
+      ADMIN_EMAIL: admin@cuty.center
+      ADMIN_PASSWORD: admin123
+      UPLOAD_DIR: /app/uploads
+      MAX_UPLOAD_MB: 10
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "1000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - upload_data_dev:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data_dev:
+  upload_data_dev:

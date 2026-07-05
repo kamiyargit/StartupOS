@@ -1,0 +1,175 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* GitHub Primer dark default palette */
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --border: #e2e8f0;
+  --card: #ffffff;
+  --muted: #64748b;
+}
+
+.dark {
+  --gh-canvas-default: #0d1117;
+  --gh-canvas-subtle: #161b22;
+  --gh-canvas-inset: #010409;
+  --gh-fg-default: #e6edf3;
+  --gh-fg-muted: #8b949e;
+  --gh-fg-subtle: #6e7681;
+  --gh-fg-emphasis: #c9d1d9;
+  --gh-border-default: #30363d;
+  --gh-border-muted: #21262d;
+  --gh-neutral-subtle: #21262d;
+  --gh-neutral-muted: #30363d;
+  --gh-accent-fg: #58a6ff;
+  --gh-danger-fg: #f85149;
+  --gh-success-fg: #3fb950;
+
+  --background: var(--gh-canvas-default);
+  --foreground: var(--gh-fg-default);
+  --border: var(--gh-border-default);
+  --card: var(--gh-canvas-subtle);
+  --muted: var(--gh-fg-muted);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-border: var(--border);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-gh-canvas: #0d1117;
+  --color-gh-canvas-subtle: #161b22;
+  --color-gh-canvas-inset: #010409;
+  --color-gh-fg: #e6edf3;
+  --color-gh-fg-muted: #8b949e;
+  --color-gh-fg-subtle: #6e7681;
+  --color-gh-fg-emphasis: #c9d1d9;
+  --color-gh-border: #30363d;
+  --color-gh-border-muted: #21262d;
+  --color-gh-neutral: #21262d;
+  --color-gh-neutral-emphasis: #30363d;
+  --color-gh-accent: #58a6ff;
+  --color-gh-danger: #f85149;
+  --color-gh-success: #3fb950;
+  --font-sans: var(--font-vazirmatn), ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+}
+
+html.pwa-standalone,
+html.pwa-standalone body {
+  overscroll-behavior: none;
+  overflow: hidden;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: manipulation;
+}
+
+html.pwa-standalone .pwa-root {
+  height: 100dvh;
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+html.pwa-standalone .pwa-root:has(.pwa-shell) {
+  overflow: hidden;
+}
+
+html.pwa-standalone .pwa-shell {
+  min-height: 0;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+html.pwa-standalone .pwa-shell-scroll {
+  overflow-y: auto;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+@layer base {
+  a[href],
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="combobox"]:not([aria-disabled="true"]),
+  [role="menuitem"],
+  [role="option"],
+  [role="tab"],
+  [role="radio"],
+  [role="checkbox"],
+  label[for],
+  label:has(input:not([type="text"]):not([type="email"]):not([type="password"]):not([type="number"]):not([type="search"]):not([type="url"]):not([type="tel"])),
+  label:has(button),
+  select:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+
+  input:not(:disabled),
+  textarea:not(:disabled) {
+    cursor: text;
+  }
+
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  input[type="file"]:not(:disabled),
+  input[type="color"]:not(:disabled),
+  input[type="date"]:not(:disabled),
+  input[type="range"]:not(:disabled),
+  input[type="button"]:not(:disabled),
+  input[type="submit"]:not(:disabled),
+  input[type="reset"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  input:disabled,
+  textarea:disabled,
+  select:disabled {
+    cursor: not-allowed;
+  }
+}
+
+* {
+  border-color: var(--border);
+}
+
+input[type="date"] {
+  text-align: start;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0);
+}
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+/* Recharts: custom tooltips + dark mode wrapper cleanup */
+.recharts-tooltip-wrapper {
+  z-index: 20;
+  outline: none;
+}
+
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}

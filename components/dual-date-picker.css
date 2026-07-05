@@ -1,0 +1,201 @@
+.dual-date-picker {
+  direction: rtl;
+  --rmdp-primary-green: #059669;
+  --rmdp-secondary-green: #a7f3d0;
+  --rmdp-shadow-green: #34d399;
+  --rmdp-today-green: #6ee7b7;
+  --rmdp-hover-green: #10b981;
+  --rmdp-deselect-green: #047857;
+}
+
+.dual-date-picker .rmdp-container,
+.dual-date-picker .rmdp-input-container {
+  width: 100%;
+}
+
+.dual-date-picker .rmdp-input {
+  width: 100%;
+}
+
+/* Calendar popup — light */
+.dual-date-picker .rmdp-wrapper {
+  border-radius: 0.75rem;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow:
+    0 10px 15px -3px rgb(15 23 42 / 0.08),
+    0 4px 6px -4px rgb(15 23 42 / 0.08);
+  font-family: var(--font-sans);
+}
+
+.dual-date-picker .rmdp-rtl {
+  direction: rtl;
+  text-align: center;
+}
+
+.dual-date-picker .rmdp-rtl .rmdp-header {
+  direction: rtl;
+}
+
+.dual-date-picker .rmdp-week-day {
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.dual-date-picker .rmdp-day span {
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  border-radius: 0.375rem;
+}
+
+.dual-date-picker .rmdp-day:not(.rmdp-disabled):not(.rmdp-day-hidden) span:hover {
+  background-color: #ecfdf5;
+  color: #047857;
+}
+
+.dual-date-picker .rmdp-day.rmdp-selected span:not(.highlight) {
+  background-color: #059669 !important;
+  color: #ffffff !important;
+  box-shadow: none;
+}
+
+.dual-date-picker .rmdp-day.rmdp-today span {
+  background-color: #d1fae5;
+  color: #047857;
+}
+
+.dual-date-picker .rmdp-arrow {
+  border-color: #64748b;
+  cursor: pointer;
+}
+
+.dual-date-picker .rmdp-arrow-container:hover {
+  background-color: #f1f5f9;
+  box-shadow: none;
+}
+
+.dual-date-picker .rmdp-action-button {
+  cursor: pointer;
+  color: #059669;
+}
+
+/* Calendar popup — GitHub dark */
+.dark .dual-date-picker {
+  --rmdp-primary-green: #238636;
+  --rmdp-secondary-green: #033a16;
+  --rmdp-shadow-green: #2ea043;
+  --rmdp-today-green: #3fb950;
+  --rmdp-hover-green: #2ea043;
+  --rmdp-deselect-green: #f85149;
+}
+
+.dark .dual-date-picker .rmdp-wrapper {
+  background-color: #161b22;
+  color: #e6edf3;
+  border: 1px solid #30363d;
+  box-shadow: 0 12px 28px rgb(0 0 0 / 0.45);
+}
+
+.dark .dual-date-picker .rmdp-week-day {
+  color: #8b949e;
+}
+
+.dark .dual-date-picker .rmdp-day:not(.rmdp-disabled):not(.rmdp-day-hidden) span:hover {
+  background-color: #21262d;
+  color: #e6edf3;
+}
+
+.dark .dual-date-picker .rmdp-day.rmdp-selected span:not(.highlight) {
+  background-color: #238636 !important;
+  color: #ffffff !important;
+}
+
+.dark .dual-date-picker .rmdp-day.rmdp-today span {
+  background-color: #033a16;
+  color: #3fb950;
+}
+
+.dark .dual-date-picker .rmdp-arrow {
+  border-color: #8b949e;
+}
+
+.dark .dual-date-picker .rmdp-arrow-container:hover {
+  background-color: #21262d;
+}
+
+.dark .dual-date-picker .rmdp-action-button {
+  color: #3fb950;
+}
+
+/* Popup may render outside .dual-date-picker — target green calendar globally in dark mode */
+.dark .rmdp-wrapper.green {
+  background-color: #161b22 !important;
+  color: #e6edf3 !important;
+  border: 1px solid #30363d !important;
+  box-shadow: 0 12px 28px rgb(0 0 0 / 0.45) !important;
+}
+
+.dark .rmdp-wrapper.green .rmdp-header-values,
+.dark .rmdp-wrapper.green .rmdp-header-values span,
+.dark .dual-date-picker .rmdp-header-values,
+.dark .dual-date-picker .rmdp-header-values span {
+  color: #e6edf3 !important;
+}
+
+.dark .rmdp-wrapper.green .rmdp-week-day,
+.dark .dual-date-picker .rmdp-week-day {
+  color: #8b949e !important;
+}
+
+.dark .rmdp-wrapper.green .rmdp-day span,
+.dark .dual-date-picker .rmdp-day span {
+  color: #e6edf3 !important;
+}
+
+.dark .rmdp-wrapper.green .rmdp-day.rmdp-deactive span,
+.dark .rmdp-wrapper.green .rmdp-day.rmdp-disabled span,
+.dark .dual-date-picker .rmdp-day.rmdp-deactive span,
+.dark .dual-date-picker .rmdp-day.rmdp-disabled span {
+  color: #6e7681 !important;
+}
+
+.dark .rmdp-wrapper.green .rmdp-month-picker,
+.dark .rmdp-wrapper.green .rmdp-year-picker,
+.dark .dual-date-picker .rmdp-month-picker,
+.dark .dual-date-picker .rmdp-year-picker {
+  background-color: #161b22 !important;
+  color: #e6edf3 !important;
+}
+
+.dark .rmdp-wrapper.green .rmdp-month-picker .rmdp-day span,
+.dark .rmdp-wrapper.green .rmdp-year-picker .rmdp-day span {
+  color: #e6edf3 !important;
+}
+
+.dark .rmdp-wrapper.green .rmdp-day:not(.rmdp-disabled):not(.rmdp-day-hidden) span:hover,
+.dark .dual-date-picker .rmdp-day:not(.rmdp-disabled):not(.rmdp-day-hidden) span:hover {
+  background-color: #21262d !important;
+  color: #e6edf3 !important;
+}
+
+.dark .rmdp-wrapper.green .rmdp-day.rmdp-selected span:not(.highlight),
+.dark .dual-date-picker .rmdp-day.rmdp-selected span:not(.highlight) {
+  background-color: #238636 !important;
+  color: #ffffff !important;
+}
+
+.dark .rmdp-wrapper.green .rmdp-day.rmdp-today span,
+.dark .dual-date-picker .rmdp-day.rmdp-today span {
+  background-color: #033a16 !important;
+  color: #3fb950 !important;
+}
+
+.dark .rmdp-wrapper.green .rmdp-arrow {
+  border-color: #8b949e !important;
+}
+
+.dark .rmdp-wrapper.green .rmdp-arrow-container:hover {
+  background-color: #21262d !important;
+}
