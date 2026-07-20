@@ -2,6 +2,7 @@ import { PrismaClient, Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import dayjs from "dayjs";
 import jalaliday from "jalaliday";
+import { isCloudMode } from "../lib/deployment";
 
 dayjs.extend(jalaliday);
 
@@ -21,30 +22,34 @@ function wantsFreshSeedData(): boolean {
 
 async function main() {
   const freshSeed = wantsFreshSeedData();
-  const username = process.env.ADMIN_USERNAME ?? "admin";
-  const email = process.env.ADMIN_EMAIL ?? "admin@cuty.center";
-  const password = process.env.ADMIN_PASSWORD ?? "change-me-on-first-deploy";
+  const skipAdmin = isCloudMode() || process.env.SKIP_ADMIN_SEED === "1";
 
-  const passwordHash = await bcrypt.hash(password, 12);
+  if (!skipAdmin) {
+    const username = process.env.ADMIN_USERNAME ?? "admin";
+    const email = process.env.ADMIN_EMAIL ?? "admin@kartin.local";
+    const password = process.env.ADMIN_PASSWORD ?? "change-me-on-first-deploy";
 
-  await prisma.user.upsert({
-    where: { email },
-    update: {
-      username,
-      passwordHash,
-      fullName: "مدیر سیستم",
-      role: Role.ADMIN,
-      isActive: true,
-    },
-    create: {
-      username,
-      email,
-      passwordHash,
-      fullName: "مدیر سیستم",
-      role: Role.ADMIN,
-      isActive: true,
-    },
-  });
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    await prisma.user.upsert({
+      where: { email },
+      update: {
+        username,
+        passwordHash,
+        fullName: "مدیر سیستم",
+        role: Role.ADMIN,
+        isActive: true,
+      },
+      create: {
+        username,
+        email,
+        passwordHash,
+        fullName: "مدیر سیستم",
+        role: Role.ADMIN,
+        isActive: true,
+      },
+    });
+  }
 
   await prisma.appSettings.upsert({
     where: { id: "default" },
@@ -52,12 +57,41 @@ async function main() {
     create: {
       id: "default",
       minJalaliYear: defaultMinJalaliYear(),
+      appName: "Kartin",
+      appNameShort: "Kartin",
+      appNameFa: "کارتین",
+      tagline: "سیستم مدیریت هوشمند کسب‌وکار",
+      logoUrl: "/logo.svg",
+      iconUrl: "/icons/icon-512.png",
+      themeColor: "#534AB7",
     },
   });
 
+  const taskLabels = ["فوری", "همکاری", "مالی"];
+  for (const name of taskLabels) {
+    await prisma.taskLabel.upsert({
+      where: { name },
+      update: {},
+      create: { name, color: "#534AB7" },
+    });
+  }
+
+  const incomeCategories = [
+    { name: "فروش محصول", color: "#2563eb" },
+    { name: "خدمات", color: "#0891b2" },
+    { name: "مشاوره", color: "#6366f1" },
+  ];
+  for (const { name, color } of incomeCategories) {
+    await prisma.incomeCategory.upsert({
+      where: { name },
+      update: { color },
+      create: { name, color },
+    });
+  }
+
   if (freshSeed) {
     const defaultTypes: { name: string; color: string }[] = [
-      { name: "Host", color: "#059669" },
+      { name: "Host", color: "#534AB7" },
       { name: "SMS-Panel", color: "#0891b2" },
       { name: "mapAPI", color: "#6366f1" },
     ];

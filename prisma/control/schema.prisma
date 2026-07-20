@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../generated/control-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL_CONTROL")
+}
+
+enum OrganizationStatus {
+  DRAFT
+  PROVISIONING
+  ACTIVE
+  SUSPENDED
+  FAILED
+}
+
+enum SubdomainStatus {
+  RESERVED
+  ACTIVE
+  RELEASED
+}
+
+enum ProvisioningJobStatus {
+  DRAFT
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum SetupStep {
+  ACCOUNT
+  BUSINESS
+  TEAM
+  REVIEW
+}
+
+model Organization {
+  id           String             @id @default(cuid())
+  name         String
+  description  String?
+  businessType String?
+  companyInfo  Json?
+  slug         String?            @unique
+  status       OrganizationStatus @default(DRAFT)
+  tenantUrl    String?
+  setupStep    SetupStep          @default(ACCOUNT)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  members      OrganizationMemberDraft[]
+  reservations SubdomainReservation[]
+  jobs         ProvisioningJob[]
+  adminDraft   SuperAdminDraft?
+  branding     BrandingDraft?
+}
+
+model OrganizationMemberDraft {
+  id             String   @id @default(cuid())
+  organizationId String
+  fullName       String
+  email          String?
+  roleSuggestion String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+model SubdomainReservation {
+  id             String          @id @default(cuid())
+  slug           String          @unique
+  organizationId String
+  status         SubdomainStatus @default(RESERVED)
+  expiresAt      DateTime?
+  createdAt      DateTime        @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+model ProvisioningJob {
+  id             String                @id @default(cuid())
+  organizationId String
+  status         ProvisioningJobStatus @default(DRAFT)
+  currentStep    SetupStep             @default(ACCOUNT)
+  validationLog  Json?
+  errorLog       String?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+model SuperAdminDraft {
+  id               String   @id @default(cuid())
+  organizationId   String   @unique
+  username         String
+  email            String
+  phone            String   @default("")
+  passwordHash     String
+  fullName         String   @default("مدیر ارشد")
+  emailVerified    Boolean  @default(false)
+  emailVerifyToken String?  @unique
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model SetupLoginToken {
+  id             String    @id @default(cuid())
+  token          String    @unique
+  organizationId String
+  tenantUserId   String
+  expiresAt      DateTime
+  usedAt         DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([organizationId])
+}
+
+model BrandingDraft {
+  id             String   @id @default(cuid())
+  organizationId String   @unique
+  appName        String
+  appNameShort   String
+  appNameFa      String
+  tagline        String?
+  logoUrl        String?
+  iconUrl        String?
+  themeColor     String   @default("#534AB7")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model SetupSession {
+  id             String   @id @default(cuid())
+  token          String   @unique
+  organizationId String
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId])
+}

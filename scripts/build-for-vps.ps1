@@ -2,7 +2,7 @@
 # Run from repo root: .\scripts\build-for-vps.ps1
 #   .\scripts\build-for-vps.ps1 -ReDownloadPackages   # force fresh pnpm download
 #   .\scripts\build-for-vps.ps1 -NoCache              # force full rebuild
-# Output: dist\cuty-expenses-images.tar
+# Output: dist\kartin-images.tar
 param(
     [switch]$ReDownloadPackages,
     [switch]$NoCache
@@ -48,10 +48,10 @@ try {
     }
 }
 
-$ProjectName = "cuty-expenses"
+$ProjectName = "kartin"
 $OutDir = Join-Path $Root "dist"
-$TarPath = Join-Path $OutDir "cuty-expenses-images.tar"
-$AppImage = "cuty-expenses-app:latest"
+$TarPath = Join-Path $OutDir "kartin-images.tar"
+$AppImage = "kartin-app:latest"
 
 $envFileArg = @()
 if (Test-Path (Join-Path $Root ".env")) {
@@ -60,7 +60,7 @@ if (Test-Path (Join-Path $Root ".env")) {
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  Cuty Expenses - Production Build" -ForegroundColor Cyan
+Write-Host "  StartupOS - Production Build" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "  Image    : $AppImage" -ForegroundColor White

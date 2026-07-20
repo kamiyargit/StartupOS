@@ -41,7 +41,7 @@ export default function AdminCostTypesPage() {
   }, []);
 
   const getDraft = (t: CostFactorTypeDTO): RowDraft =>
-    drafts[t.id] ?? { name: t.name ?? "", color: t.color ?? "#059669" };
+    drafts[t.id] ?? { name: t.name ?? "", color: t.color ?? "#534AB7" };
 
   const isDirty = (t: CostFactorTypeDTO) => {
     const d = drafts[t.id];
@@ -52,7 +52,7 @@ export default function AdminCostTypesPage() {
   const setDraft = (id: string, patch: Partial<RowDraft>) => {
     const current = types.find((t) => t.id === id);
     if (!current) return;
-    const base = drafts[id] ?? { name: current.name ?? "", color: current.color ?? "#059669" };
+    const base = drafts[id] ?? { name: current.name ?? "", color: current.color ?? "#534AB7" };
     setDrafts((prev) => ({ ...prev, [id]: { ...base, ...patch } }));
   };
 
@@ -194,7 +194,7 @@ export default function AdminCostTypesPage() {
                         type="button"
                         size="icon"
                         variant="default"
-                        className="h-9 w-9 bg-emerald-600 hover:bg-emerald-700"
+                        className="h-9 w-9 bg-primary-600 hover:bg-primary-700"
                         onClick={() => saveDraft(t)}
                         aria-label="ذخیره"
                       >

@@ -1,47 +1,72 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Eye, Pencil, Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CostTypeBadge } from "@/components/cost-type-badge";
-import { ExpenseDTO } from "@/lib/dto";
+import { Pagination } from "@/components/pagination";
+import { ExpenseDTO, PaginatedResponse } from "@/lib/dto";
 import { formatExpenseMoney } from "@/lib/currency";
 
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<ExpenseDTO[]>([]);
   const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [pageSize] = useState(20);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const load = () => {
-    setLoading(true);
-    setLoadError(null);
-    const params = q ? `?q=${encodeURIComponent(q)}` : "";
-    fetch(`/api/expenses${params}`)
-      .then(async (r) => {
-        const data = await r.json();
-        if (!r.ok) {
-          throw new Error(typeof data?.error === "string" ? data.error : "خطا در بارگذاری هزینه‌ها");
-        }
-        if (!Array.isArray(data)) {
-          throw new Error("پاسخ سرور نامعتبر است.");
-        }
-        return data as ExpenseDTO[];
-      })
-      .then(setExpenses)
-      .catch((error: unknown) => {
-        setExpenses([]);
-        setLoadError(error instanceof Error ? error.message : "خطا در بارگذاری هزینه‌ها");
-      })
-      .finally(() => setLoading(false));
-  };
+  const load = useCallback(
+    (targetPage = page) => {
+      setLoading(true);
+      setLoadError(null);
+      const params = new URLSearchParams({ page: String(targetPage), pageSize: String(pageSize) });
+      if (q) params.set("q", q);
+      fetch(`/api/expenses?${params}`)
+        .then(async (r) => {
+          const data = await r.json();
+          if (!r.ok) {
+            throw new Error(typeof data?.error === "string" ? data.error : "خطا در بارگذاری هزینه‌ها");
+          }
+          if (!Array.isArray(data.items)) {
+            throw new Error("پاسخ سرور نامعتبر است.");
+          }
+          return data as PaginatedResponse<ExpenseDTO>;
+        })
+        .then((data) => {
+          setExpenses(data.items);
+          setTotal(data.total);
+          setTotalPages(data.totalPages);
+          setPage(data.page);
+        })
+        .catch((error: unknown) => {
+          setExpenses([]);
+          setLoadError(error instanceof Error ? error.message : "خطا در بارگذاری هزینه‌ها");
+        })
+        .finally(() => setLoading(false));
+    },
+    [page, pageSize, q],
+  );
 
   useEffect(() => {
-    load();
+    load(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const onSearch = () => {
+    setPage(1);
+    load(1);
+  };
+
+  const onPageChange = (nextPage: number) => {
+    setPage(nextPage);
+    load(nextPage);
+  };
 
   return (
     <div className="space-y-6">
@@ -65,10 +90,10 @@ export default function ExpensesPage() {
                 placeholder="جستجو..."
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && load()}
+                onKeyDown={(e) => e.key === "Enter" && onSearch()}
               />
             </div>
-            <Button variant="outline" onClick={load} className="w-full sm:w-auto">
+            <Button variant="outline" onClick={onSearch} className="w-full sm:w-auto">
               جستجو
             </Button>
           </div>
@@ -198,6 +223,15 @@ export default function ExpensesPage() {
                   </tbody>
                 </table>
               </div>
+
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                total={total}
+                pageSize={pageSize}
+                onPageChange={onPageChange}
+                className="mt-4"
+              />
             </>
           )}
         </CardContent>

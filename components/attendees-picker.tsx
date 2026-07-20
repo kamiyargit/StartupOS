@@ -6,15 +6,16 @@ import * as Popover from "@radix-ui/react-popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { UserDTO } from "@/lib/dto";
 import {
   MeetingAttendeesData,
+  addGuest,
   mergeGuestNames,
 } from "@/lib/meeting-attendees";
 import { cn } from "@/lib/utils";
 
 export type AttendeesPickerHandle = {
-  /** Commit any names still typed in the guest field before submit validation. */
   flushPendingGuests: () => MeetingAttendeesData;
 };
 
@@ -28,26 +29,35 @@ export const AttendeesPicker = forwardRef<AttendeesPickerHandle, AttendeesPicker
   function AttendeesPicker({ value, onChange, id }, ref) {
     const [users, setUsers] = useState<UserDTO[]>([]);
     const [open, setOpen] = useState(false);
-    const [guestDraft, setGuestDraft] = useState("");
+    const [guestName, setGuestName] = useState("");
+    const [guestDescription, setGuestDescription] = useState("");
 
     useEffect(() => {
-      fetch("/api/users")
+      fetch("/api/users?all=true")
         .then((r) => r.json())
         .then((data: UserDTO[]) => setUsers(data.filter((u) => u.isActive)));
     }, []);
 
     const flushPendingGuests = (): MeetingAttendeesData => {
-      const next = mergeGuestNames(value, guestDraft);
-      if (next.guests.length !== value.guests.length) {
+      let next = value;
+      if (guestName.trim()) {
+        next = addGuest(next, { name: guestName, description: guestDescription });
         onChange(next);
-        setGuestDraft("");
+        setGuestName("");
+        setGuestDescription("");
+      } else {
+        next = mergeGuestNames(value, guestName);
+        if (next.guests.length !== value.guests.length) {
+          onChange(next);
+          setGuestName("");
+        }
       }
       return next;
     };
 
-    useImperativeHandle(ref, () => ({ flushPendingGuests }), [value, guestDraft, onChange]);
+    useImperativeHandle(ref, () => ({ flushPendingGuests }), [value, guestName, guestDescription, onChange]);
 
-    const userMap = new Map(users.map((u) => [u.id, u.fullName]));
+    const userMap = new Map(users.map((u) => [u.id, u]));
     const totalCount = value.userIds.length + value.guests.length;
 
     const triggerLabel =
@@ -65,11 +75,11 @@ export const AttendeesPicker = forwardRef<AttendeesPickerHandle, AttendeesPicker
       });
     };
 
-    const addGuests = () => {
-      const next = mergeGuestNames(value, guestDraft);
-      if (next.guests.length === value.guests.length) return;
-      onChange(next);
-      setGuestDraft("");
+    const addGuestEntry = () => {
+      if (!guestName.trim()) return;
+      onChange(addGuest(value, { name: guestName, description: guestDescription }));
+      setGuestName("");
+      setGuestDescription("");
     };
 
     const removeGuest = (index: number) => {
@@ -123,28 +133,30 @@ export const AttendeesPicker = forwardRef<AttendeesPickerHandle, AttendeesPicker
                           type="button"
                           onClick={() => toggleUser(user.id)}
                           className={cn(
-                            "flex w-full items-center gap-2 rounded-md px-2 py-2 text-start text-sm transition",
+                            "flex w-full items-start gap-2 rounded-md px-2 py-2 text-start text-sm transition",
                             checked
-                              ? "bg-emerald-50 text-emerald-800 dark:bg-[#033a16] dark:text-gh-success"
+                              ? "bg-primary-50 text-primary-800 dark:bg-primary-950 dark:text-primary-400"
                               : "hover:bg-slate-100 dark:hover:bg-gh-neutral",
                           )}
                         >
                           <span
                             className={cn(
-                              "flex h-4 w-4 shrink-0 items-center justify-center rounded border",
+                              "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border",
                               checked
-                                ? "border-emerald-600 bg-emerald-600 text-white dark:border-gh-success dark:bg-gh-success"
+                                ? "border-primary-600 bg-primary-600 text-white dark:border-gh-success dark:bg-gh-success"
                                 : "border-slate-300 dark:border-gh-border",
                             )}
                           >
                             {checked && <Check className="h-3 w-3" />}
                           </span>
-                          <span className="min-w-0 flex-1 truncate">{user.fullName}</span>
-                          {user.position && (
-                            <span className="shrink-0 text-xs text-slate-500 dark:text-gh-fg-muted">
-                              {user.position}
-                            </span>
-                          )}
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate font-medium">{user.fullName}</span>
+                            {user.position && (
+                              <span className="block text-xs text-slate-500 dark:text-gh-fg-muted">
+                                {user.position}
+                              </span>
+                            )}
+                          </span>
                         </button>
                       );
                     })
@@ -156,72 +168,80 @@ export const AttendeesPicker = forwardRef<AttendeesPickerHandle, AttendeesPicker
 
           {value.userIds.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {value.userIds.map((userId) => (
-                <span
-                  key={userId}
-                  className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs dark:bg-gh-neutral"
-                >
-                  {userMap.get(userId) ?? "کاربر"}
-                  <button
-                    type="button"
-                    onClick={() => removeUser(userId)}
-                    className="rounded-full p-0.5 hover:bg-slate-200 dark:hover:bg-gh-neutral-emphasis"
-                    aria-label="حذف"
+              {value.userIds.map((userId) => {
+                const user = userMap.get(userId);
+                return (
+                  <span
+                    key={userId}
+                    className="inline-flex max-w-full flex-col rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs dark:bg-gh-neutral"
                   >
-                    <X className="h-3 w-3" />
-                  </button>
-                </span>
-              ))}
+                    <span className="inline-flex items-center gap-1">
+                      <span className="font-medium">{user?.fullName ?? "کاربر"}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeUser(userId)}
+                        className="rounded-full p-0.5 hover:bg-slate-200 dark:hover:bg-gh-neutral-emphasis"
+                        aria-label="حذف"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                    {user?.position && (
+                      <span className="text-slate-500 dark:text-gh-fg-muted">{user.position}</span>
+                    )}
+                  </span>
+                );
+              })}
             </div>
           )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor={`${id ?? "attendees"}-guest`}>مهمان‌ها</Label>
-          <div className="flex gap-2">
-            <Input
-              id={`${id ?? "attendees"}-guest`}
-              value={guestDraft}
-              onChange={(e) => setGuestDraft(e.target.value)}
-              placeholder="نام مهمان — چند نفر را با ویرگول جدا کنید"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addGuests();
-                }
-              }}
-            />
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={addGuests}
-              className="shrink-0 gap-1"
-            >
-              <UserPlus className="h-4 w-4" />
-              افزودن
-            </Button>
-          </div>
-          <p className="text-xs text-slate-500 dark:text-gh-fg-muted">
-            می‌توانید چند مهمان را پشت‌سرهم یا با ویرگول (،) اضافه کنید.
-          </p>
+          <Label htmlFor={`${id ?? "attendees"}-guest-name`}>مهمان‌ها</Label>
+          <Input
+            id={`${id ?? "attendees"}-guest-name`}
+            value={guestName}
+            onChange={(e) => setGuestName(e.target.value)}
+            placeholder="نام مهمان"
+          />
+          <Textarea
+            id={`${id ?? "attendees"}-guest-desc`}
+            value={guestDescription}
+            onChange={(e) => setGuestDescription(e.target.value)}
+            placeholder="توضیح (اختیاری) — مثلاً چرا در جلسه حضور داشت؟"
+            rows={2}
+          />
+          <Button type="button" variant="secondary" onClick={addGuestEntry} className="gap-1">
+            <UserPlus className="h-4 w-4" />
+            افزودن مهمان
+          </Button>
 
           {value.guests.length > 0 && (
-            <div className="flex flex-wrap gap-2">
+            <div className="space-y-2">
               {value.guests.map((guest, index) => (
-                <span
-                  key={`${guest}-${index}`}
-                  className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs text-amber-800 dark:bg-[#3d2e00] dark:text-[#d29922]"
+                <div
+                  key={`${guest.name}-${index}`}
+                  className="flex items-start justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs dark:border-[#3d2e00] dark:bg-[#3d2e00]"
                 >
-                  {guest} (مهمان)
+                  <div className="min-w-0">
+                    <p className="font-medium text-amber-900 dark:text-[#d29922]">
+                      {guest.name} <span className="font-normal">(مهمان)</span>
+                    </p>
+                    {guest.description && (
+                      <p className="mt-0.5 text-amber-800/80 dark:text-[#d29922]/80">
+                        {guest.description}
+                      </p>
+                    )}
+                  </div>
                   <button
                     type="button"
                     onClick={() => removeGuest(index)}
-                    className="rounded-full p-0.5 hover:bg-amber-100 dark:hover:bg-[#4a3800]"
+                    className="shrink-0 rounded-full p-0.5 hover:bg-amber-100 dark:hover:bg-[#4a3800]"
                     aria-label="حذف مهمان"
                   >
                     <X className="h-3 w-3" />
                   </button>
-                </span>
+                </div>
               ))}
             </div>
           )}

@@ -1,12 +1,35 @@
 import { createRequire } from "node:module";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, copyFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = join(__dirname, "..");
 const iconsDir = join(rootDir, "public", "icons");
-const sourcePath = join(rootDir, "assets", "app-icon.png");
+const sourcePath = [
+  join(rootDir, "assets", "kartin-logo.svg"),
+  join(rootDir, "assets", "kartin-logo.png"),
+  join(rootDir, "assets", "app-icon.png"),
+].find((path) => existsSync(path));
+
+if (!sourcePath) {
+  console.error("Missing source icon. Add assets/kartin-logo.svg, assets/kartin-logo.png, or assets/app-icon.png");
+  process.exit(1);
+}
+
+const appIconPath = join(rootDir, "assets", "app-icon.png");
+const logoSvgPath = join(rootDir, "public", "logo.svg");
+const logoSvgSource = join(rootDir, "assets", "kartin-logo.svg");
+
+if (sourcePath.endsWith(".png") && sourcePath !== appIconPath) {
+  copyFileSync(sourcePath, appIconPath);
+  console.log("Wrote assets/app-icon.png");
+}
+
+if (existsSync(logoSvgSource)) {
+  copyFileSync(logoSvgSource, logoSvgPath);
+  console.log("Wrote public/logo.svg");
+}
 
 const require = createRequire(import.meta.url);
 const sharp = require(
@@ -62,6 +85,10 @@ for (const { size, name } of outputs) {
   writeFileSync(join(iconsDir, name), png);
   console.log(`Wrote icons/${name}`);
 }
+
+const logoPng = await resizePng(256);
+writeFileSync(join(rootDir, "public", "logo.png"), logoPng);
+console.log("Wrote public/logo.png");
 
 const faviconSizes = [32, 16];
 const faviconImages = [];

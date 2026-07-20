@@ -3,10 +3,11 @@ import { requireSession, requireAdmin, jsonError } from "@/lib/auth-helpers";
 import { validateDateAgainstAppSettings } from "@/lib/app-settings";
 import { prisma } from "@/lib/prisma";
 import { mapMeetingMinutes } from "@/lib/meeting-minutes-mapper";
+import { buildPaginatedResult, parsePaginationParams } from "@/lib/pagination";
 
 const include = {
   createdBy: true,
-  attachments: true,
+  attachments: { where: { deletedAt: null } },
 } as const;
 
 export async function GET(req: Request) {
@@ -14,8 +15,9 @@ export async function GET(req: Request) {
     await requireSession();
     const { searchParams } = new URL(req.url);
     const q = searchParams.get("q") ?? "";
+    const { page, pageSize, skip, take } = parsePaginationParams(searchParams);
 
-    const where: Prisma.MeetingMinutesWhereInput = {};
+    const where: Prisma.MeetingMinutesWhereInput = { deletedAt: null };
 
     if (q) {
       where.OR = [
@@ -26,13 +28,18 @@ export async function GET(req: Request) {
       ];
     }
 
-    const items = await prisma.meetingMinutes.findMany({
-      where,
-      include,
-      orderBy: { meetingDate: "desc" },
-    });
+    const [items, total] = await Promise.all([
+      prisma.meetingMinutes.findMany({
+        where,
+        include,
+        orderBy: { meetingDate: "desc" },
+        skip,
+        take,
+      }),
+      prisma.meetingMinutes.count({ where }),
+    ]);
 
-    return Response.json(items.map(mapMeetingMinutes));
+    return Response.json(buildPaginatedResult(items.map(mapMeetingMinutes), total, page, pageSize));
   } catch (error) {
     return jsonError(error);
   }

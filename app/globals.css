@@ -9,6 +9,15 @@
   --border: #e2e8f0;
   --card: #ffffff;
   --muted: #64748b;
+  --primary-50: #eeedfe;
+  --primary-100: #cecbf6;
+  --primary-400: #9b94e0;
+  --primary-500: #7f77dd;
+  --primary-600: #534ab7;
+  --primary-700: #453da0;
+  --primary-800: #26215c;
+  --primary-900: #1e1b4b;
+  --primary-950: #14122f;
 }
 
 .dark {
@@ -54,6 +63,15 @@
   --color-gh-accent: #58a6ff;
   --color-gh-danger: #f85149;
   --color-gh-success: #3fb950;
+  --color-primary-50: var(--primary-50);
+  --color-primary-100: var(--primary-100);
+  --color-primary-400: var(--primary-400);
+  --color-primary-500: var(--primary-500);
+  --color-primary-600: var(--primary-600);
+  --color-primary-700: var(--primary-700);
+  --color-primary-800: var(--primary-800);
+  --color-primary-900: var(--primary-900);
+  --color-primary-950: var(--primary-950);
   --font-sans: var(--font-vazirmatn), ui-sans-serif, system-ui, sans-serif;
 }
 

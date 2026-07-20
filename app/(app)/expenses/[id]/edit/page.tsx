@@ -56,6 +56,7 @@ export default function EditExpensePage() {
               description: expense.description ?? "",
               factorDate: new Date(expense.factorDate),
               files: [],
+              existingAttachments: expense.attachments,
               financierShares: expense.financierShares,
             }}
             onSubmit={async (values) => {

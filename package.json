@@ -1,19 +1,23 @@
 {
-  "name": "cuty-accounting-webapp",
+  "name": "kartin",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "dev:docker": "WATCHPACK_POLLING=true next dev --hostname 0.0.0.0 --webpack",
-    "build": "prisma generate && next build --webpack",
+    "build": "prisma generate && prisma generate --schema=prisma/control/schema.prisma && next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "db:generate": "prisma generate",
+    "db:generate": "prisma generate && prisma generate --schema=prisma/control/schema.prisma",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
+    "db:push:control": "prisma db push --schema=prisma/control/schema.prisma",
     "db:seed": "tsx prisma/seed.ts",
     "db:seed:fresh": "tsx prisma/seed.ts --fresh-seed-data",
-    "postinstall": "prisma generate && node scripts/apply-radix-compose-refs-patch.mjs"
+    "docker:up": "docker compose up --build -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "postinstall": "prisma generate && prisma generate --schema=prisma/control/schema.prisma && node scripts/apply-radix-compose-refs-patch.mjs"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

@@ -1,20 +1,26 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { AppLogo } from "@/components/app-logo";
+import { useAppSettings } from "@/components/app-settings-provider";
+import { setupPortalUrl } from "@/lib/deployment-client";
 
 type Step = "credentials" | "otp";
 
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { appName, tagline, logoUrl, loading: settingsLoading } = useAppSettings();
   const otpRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<Step>("credentials");
   const [login, setLogin] = useState("");
@@ -123,16 +129,23 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-slate-100 p-4 dark:from-gh-canvas dark:via-gh-canvas-subtle dark:to-gh-canvas">
+    <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-primary-50 via-white to-slate-100 p-4 dark:from-gh-canvas dark:via-gh-canvas-subtle dark:to-gh-canvas">
       <div className="absolute start-4 top-4">
         <ThemeToggle />
       </div>
       <Card className="w-full max-w-md border-0 shadow-xl dark:border dark:border-gh-border dark:shadow-2xl">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl text-emerald-800 dark:text-gh-success">پنل کیوتی</CardTitle>
+          {logoUrl ? (
+            <div className="mb-2 flex justify-center">
+              <AppLogo src={logoUrl} size={56} className="h-14 w-14" />
+            </div>
+          ) : null}
+          <CardTitle className="text-2xl text-primary-800 dark:text-primary-400">
+            {settingsLoading ? "..." : appName}
+          </CardTitle>
           <p className="text-sm text-slate-500 dark:text-gh-fg-muted">
             {step === "credentials"
-              ? "ورود به سامانه مدیریت سازمانی"
+              ? (settingsLoading ? "..." : (tagline ?? "سیستم مدیریت هوشمند کسب‌وکار"))
               : "تأیید احراز هویت دو مرحله‌ای"}
           </p>
         </CardHeader>
@@ -151,9 +164,8 @@ export default function LoginForm() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">رمز عبور</Label>
-                <Input
+                <PasswordInput
                   id="password"
-                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -167,10 +179,10 @@ export default function LoginForm() {
             </form>
           ) : (
             <form onSubmit={onOtpSubmit} className="space-y-4">
-              <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 dark:border-[#033a16] dark:bg-[#033a16]/40">
-                <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700 dark:text-gh-success" />
+              <div className="flex items-start gap-3 rounded-lg border border-primary-100 bg-primary-50 p-3 dark:border-[#033a16] dark:bg-primary-950/40">
+                <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary-700 dark:text-primary-400" />
                 <div className="space-y-1 text-sm">
-                  <p className="font-medium text-emerald-800 dark:text-gh-success">رمز عبور تأیید شد</p>
+                  <p className="font-medium text-primary-800 dark:text-primary-400">رمز عبور تأیید شد</p>
                   <p className="text-slate-600 dark:text-gh-fg-muted">
                     برای ورود به حساب <span className="font-medium">{login}</span>، کد ۶ رقمی
                     اپلیکیشن احراز هویت را وارد کنید.
@@ -204,6 +216,14 @@ export default function LoginForm() {
           )}
         </CardContent>
       </Card>
+      {step === "credentials" && (
+        <p className="mt-4 text-center text-sm text-slate-600 dark:text-gh-fg-muted">
+          کسب‌وکار جدید دارید؟{" "}
+          <Link href={setupPortalUrl()} className="font-medium text-primary-600 hover:underline dark:text-primary-400">
+            راه‌اندازی کسب‌وکار
+          </Link>
+        </p>
+      )}
     </div>
   );
 }

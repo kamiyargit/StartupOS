@@ -120,7 +120,7 @@ export function FilterMultiSelect({
                       className={cn(
                         "flex w-full items-center gap-2 rounded-md px-2 py-2 text-start text-sm transition",
                         checked
-                          ? "bg-emerald-50 text-emerald-800 dark:bg-[#033a16] dark:text-gh-success"
+                          ? "bg-primary-50 text-primary-800 dark:bg-primary-950 dark:text-primary-400"
                           : "hover:bg-slate-100 dark:hover:bg-gh-neutral",
                       )}
                     >
@@ -128,7 +128,7 @@ export function FilterMultiSelect({
                         className={cn(
                           "flex h-4 w-4 shrink-0 items-center justify-center rounded border",
                           checked
-                            ? "border-emerald-600 bg-emerald-600 text-white dark:border-gh-success dark:bg-gh-success"
+                            ? "border-primary-600 bg-primary-600 text-white dark:border-gh-success dark:bg-gh-success"
                             : "border-slate-300 dark:border-gh-border",
                         )}
                       >

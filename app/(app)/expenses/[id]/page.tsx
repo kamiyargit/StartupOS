@@ -12,17 +12,9 @@ import { FinancierSharePayments } from "@/components/financier-share-payments";
 import { ExpenseDTO } from "@/lib/dto";
 import { formatExpenseMoney, currencySymbol } from "@/lib/currency";
 import { formatBytes, formatDateTimeFa } from "@/lib/format";
-import {
-  FileText,
-  ImageIcon,
-  Pencil,
-  Trash2,
-  ArrowRight,
-  Calendar,
-  User,
-  Hash,
-  Paperclip,
-} from "lucide-react";
+import { AttachmentGrid } from "@/components/attachment-viewer";
+import { Pencil, Trash2, ArrowRight, Calendar, User, Hash, Paperclip } from "lucide-react";
+import { isAdminRole } from "@/lib/deployment-client";
 
 export default function ExpenseDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -37,18 +29,18 @@ export default function ExpenseDetailPage() {
   }, [id]);
 
   const canModify =
-    session?.user?.role === "ADMIN" || session?.user?.id === expense?.addedByUserId;
+    isAdminRole(session?.user?.role ?? "") || session?.user?.id === expense?.addedByUserId;
 
   const canManageShare = (share: ExpenseDTO["financierShares"][number]) => {
     if (!session?.user?.id || !expense) return false;
-    if (session.user.role === "ADMIN") return true;
+    if (isAdminRole(session.user.role)) return true;
     if (expense.addedByUserId === session.user.id) return true;
     if (share.userId === session.user.id) return true;
     return false;
   };
 
   const onDelete = async () => {
-    if (!confirm("آیا از حذف این هزینه مطمئن هستید؟")) return;
+    if (!confirm("این هزینه آرشیو شود؟ (حذف امن — داده‌ها حفظ می‌شوند)")) return;
     const res = await fetch(`/api/expenses/${id}`, { method: "DELETE" });
     if (!res.ok) {
       toast.error("خطا در حذف");
@@ -208,42 +200,12 @@ export default function ExpenseDetailPage() {
         <CardHeader>
           <CardTitle className="text-base">فاکتورها و پیوست‌ها</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          {expense.attachments.map((a) => (
-            <a
-              key={a.id}
-              href={a.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group overflow-hidden rounded-lg border border-slate-200 transition hover:border-emerald-400 dark:border-gh-border dark:hover:border-emerald-600"
-            >
-              {a.mimeType.startsWith("image/") ? (
-                <div className="aspect-video bg-slate-100 dark:bg-gh-neutral">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={a.url}
-                    alt={a.fileName}
-                    className="h-full w-full object-cover transition group-hover:scale-[1.02]"
-                  />
-                </div>
-              ) : (
-                <div className="flex aspect-video items-center justify-center bg-slate-50 dark:bg-gh-neutral">
-                  <FileText className="h-12 w-12 text-emerald-600" />
-                </div>
-              )}
-              <div className="flex items-center gap-2 border-t border-slate-100 p-3 dark:border-gh-border">
-                {a.mimeType.startsWith("image/") ? (
-                  <ImageIcon className="h-4 w-4 shrink-0 text-emerald-600" />
-                ) : (
-                  <FileText className="h-4 w-4 shrink-0 text-emerald-600" />
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{a.fileName}</p>
-                  <p className="text-xs text-slate-500 dark:text-gh-fg-muted">{formatBytes(a.sizeBytes)}</p>
-                </div>
-              </div>
-            </a>
-          ))}
+        <CardContent>
+          {expense.attachments.length === 0 ? (
+            <p className="text-sm text-slate-500 dark:text-gh-fg-muted">پیوستی ثبت نشده است.</p>
+          ) : (
+            <AttachmentGrid attachments={expense.attachments} />
+          )}
         </CardContent>
       </Card>
     </div>

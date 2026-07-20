@@ -2,8 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { ExpenseForm } from "@/components/expense-form";
 import { toGregorianString } from "@/lib/dates";
 
@@ -13,9 +15,14 @@ export default function NewExpensePage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">ثبت هزینه جدید</h1>
-        <p className="text-sm text-slate-500">اطلاعات فاکتور را وارد کنید</p>
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">ثبت هزینه جدید</h1>
+          <p className="text-sm text-slate-500">اطلاعات فاکتور را وارد کنید</p>
+        </div>
+        <Button variant="outline" asChild>
+          <Link href="/expenses">انصراف</Link>
+        </Button>
       </div>
 
       <Card>

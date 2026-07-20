@@ -1,4 +1,4 @@
-# One-shot: build prod image locally, then upload to VPS and start cuty-expenses stack.
+# One-shot: build prod image locally, then upload to VPS and start kartin stack.
 # Run by double-clicking run-deploy.bat or: .\scripts\build-and-deploy-to-vps.ps1
 #   .\scripts\build-and-deploy-to-vps.ps1 -ReDownloadPackages
 #   .\scripts\build-and-deploy-to-vps.ps1 -SkipNginxUpdate
@@ -52,8 +52,8 @@ if (-not $env:VPS_USER) {
     if (-not $env:VPS_USER) { $env:VPS_USER = $defaultUser }
 }
 if (-not $env:VPS_PATH) {
-    $defaultPath = "/opt/cuty-expenses"
-    $entered = Read-Host "Expenses app path on server [default: $defaultPath]"
+    $defaultPath = "/opt/kartin"
+    $entered = Read-Host "StartupOS app path on server [default: $defaultPath]"
     $env:VPS_PATH = if ($entered) { $entered.Trim() } else { $defaultPath }
 }
 if (-not $env:CUTY_PLATFORM_PATH) {
@@ -62,11 +62,11 @@ if (-not $env:CUTY_PLATFORM_PATH) {
     $env:CUTY_PLATFORM_PATH = if ($entered) { $entered.Trim() } else { $defaultPlatform }
 }
 if ($env:VPS_PATH -notmatch '^/') {
-    Write-Error "VPS_PATH must start with / (e.g. /opt/cuty-expenses). Got: $($env:VPS_PATH)"
+    Write-Error "VPS_PATH must start with / (e.g. /opt/kartin). Got: $($env:VPS_PATH)"
 }
 
 Write-Host ""
-Write-Host "=== Cuty Expenses deploy (expenses.cuty.center) ===" -ForegroundColor Cyan
+Write-Host "=== StartupOS deploy (expenses.cuty.center) ===" -ForegroundColor Cyan
 Write-Host "  App path      : $($env:VPS_PATH)" -ForegroundColor DarkGray
 Write-Host "  Platform path : $($env:CUTY_PLATFORM_PATH)" -ForegroundColor DarkGray
 Write-Host ""

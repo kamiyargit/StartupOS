@@ -1,9 +1,8 @@
-import { requireSession, requireAdmin, jsonError } from "@/lib/auth-helpers";
+import { requireAdmin, jsonError } from "@/lib/auth-helpers";
 import { getAppSettings, updateAppSettings } from "@/lib/app-settings";
 
 export async function GET() {
   try {
-    await requireSession();
     return Response.json(await getAppSettings());
   } catch (error) {
     return jsonError(error);

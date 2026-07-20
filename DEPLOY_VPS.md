@@ -1,17 +1,19 @@
-# Deploy Cuty Expenses to VPS (`expenses.cuty.center`)
+# Deploy Kartin to VPS (`expenses.cuty.center`)
+
+> **Note:** Self-hosted VPS deployment is temporarily disabled for the Kartin SaaS launch (`ENABLE_SELF_HOSTED=false` by default). This guide remains for future use when self-hosting is re-enabled.
 
 This app runs as an **isolated Docker stack** beside Cuty Platform — it does not replace or restart the main platform containers.
 
 ## Isolation (no conflicts)
 
-| Item | Cuty Platform | Cuty Expenses (this app) |
-|------|---------------|--------------------------|
-| VPS path | `/opt/cuty-platform` | `/opt/cuty-expenses` |
-| Compose project | `cuty-platform` | `cuty-expenses` |
+| Item | Cuty Platform | StartupOS (this app) |
+|------|---------------|----------------------|
+| VPS path | `/opt/cuty-platform` | `/opt/kartin` |
+| Compose project | `cuty-platform` | `kartin` |
 | Public ports | `80`, `443` (cuty-nginx) | **none** on host |
 | Subdomain | cuty.center, api.*, admin.*, … | **expenses.cuty.center** only |
-| DB | cuty-postgres-prod | cuty-expenses-db (separate volume) |
-| Proxy container | cuty-nginx-prod | cuty-expenses-proxy (internal + cuty network) |
+| DB | cuty-postgres-prod | kartin-db (separate volume) |
+| Proxy container | cuty-nginx-prod | kartin-proxy (internal + cuty network) |
 
 TLS terminates on **Cuty nginx**. This stack exposes HTTP only on the shared Docker network (`cuty-platform_cuty-network`).
 
@@ -27,15 +29,15 @@ TLS terminates on **Cuty nginx**. This stack exposes HTTP only on the shared Doc
 
 ```bash
 ssh root@YOUR_VPS
-mkdir -p /opt/cuty-expenses
+mkdir -p /opt/kartin
 ```
 
 From your PC (create the directory first — `scp` cannot create parent folders):
 
 ```powershell
-ssh root@YOUR_VPS "mkdir -p /opt/cuty-expenses"
-scp env.production.expenses.example root@YOUR_VPS:/opt/cuty-expenses/.env
-ssh root@YOUR_VPS "nano /opt/cuty-expenses/.env"
+ssh root@YOUR_VPS "mkdir -p /opt/kartin"
+scp env.production.expenses.example root@YOUR_VPS:/opt/kartin/.env
+ssh root@YOUR_VPS "nano /opt/kartin/.env"
 ```
 
 Set at minimum:
@@ -67,7 +69,7 @@ $env:VPS_USER = "root"
 
 Optional env vars:
 
-- `VPS_PATH` — default `/opt/cuty-expenses`
+- `VPS_PATH` — default `/opt/kartin`
 - `CUTY_PLATFORM_PATH` — default `/opt/cuty-platform`
 - `VPS_SSH_KEY` — path to SSH private key
 
@@ -78,7 +80,7 @@ Flags:
 
 ## What the upload script does
 
-1. Uploads image tarball + compose to `/opt/cuty-expenses`
+1. Uploads image tarball + compose to `/opt/kartin`
 2. Loads images and runs `docker compose -f docker-compose.prod.yml up -d`
 3. Copies `nginx/expenses.cuty.center.conf` → `/opt/cuty-platform/nginx/conf.d/`
 4. Runs `nginx -t` and restarts **only** the Cuty nginx container
@@ -89,9 +91,9 @@ It does **not** run `docker system prune` on the VPS (unlike the main platform d
 
 Deploy scripts are designed **not** to break the main Cuty stack:
 
-| Action | cuty-platform | cuty-expenses |
+| Action | cuty-platform | kartin |
 |--------|---------------|---------------|
-| `docker compose up` | Never run by these scripts | Only `/opt/cuty-expenses` |
+| `docker compose up` | Never run by these scripts | Only `/opt/kartin` |
 | `docker system prune` | Never run | Never run |
 | DB / app containers | Never restarted | Recreated on deploy |
 | Nginx | **Only** `nginx -t` + restart `nginx` container | Internal proxy only |
@@ -105,7 +107,7 @@ After deploy/repair, scripts probe `cuty.center` and `expenses.cuty.center` from
 
 ```bash
 # On VPS
-cd /opt/cuty-expenses && docker compose -f docker-compose.prod.yml ps
+cd /opt/kartin && docker compose -f docker-compose.prod.yml ps
 curl -sI https://expenses.cuty.center | head -5
 ```
 
@@ -114,8 +116,8 @@ Login: `ADMIN_EMAIL` / `ADMIN_PASSWORD` from `.env`.
 ## Backup
 
 ```bash
-cd /opt/cuty-expenses
-docker compose -f docker-compose.prod.yml exec db pg_dump -U cuty cuty_financial > backup.sql
+cd /opt/kartin
+docker compose -f docker-compose.prod.yml exec db pg_dump -U kartin kartin > backup.sql
 ```
 
 ## Troubleshooting
@@ -155,26 +157,57 @@ $env:VPS_USER = "root"
 .\scripts\repair-expenses-on-vps.ps1
 ```
 
-Common causes: missing `POSTGRES_PASSWORD` / `AUTH_SECRET` in `/opt/cuty-expenses/.env`, app crash on `prisma db push` (fixed with `--skip-generate` in entrypoint), or Cuty nginx not routing to `cuty-expenses-proxy`.
+Common causes: missing `POSTGRES_PASSWORD` / `AUTH_SECRET` in `/opt/kartin/.env`, app crash on `prisma db push` (fixed with `--skip-generate` in entrypoint), or Cuty nginx not routing to `kartin-proxy`.
 
 **502 on expenses.cuty.center (manual checks)**
 
-- `docker compose -f docker-compose.prod.yml ps` in `/opt/cuty-expenses` — all services up?
-- `docker network inspect cuty-platform_cuty-network` — is `cuty-expenses-proxy` attached?
-- `docker logs cuty-expenses-app --tail 50`
+- `docker compose -f docker-compose.prod.yml ps` in `/opt/kartin` — all services up?
+- `docker network inspect cuty-platform_cuty-network` — is `kartin-proxy` attached?
+- `docker logs kartin-app --tail 50`
 
 **Missing .env**
 
 ```powershell
-scp env.production.expenses.example root@VPS:/opt/cuty-expenses/.env
+scp env.production.expenses.example root@VPS:/opt/kartin/.env
 ```
 
 **Nginx config not applied**
 
 ```bash
-cp /opt/cuty-expenses/nginx/expenses.cuty.center.conf /opt/cuty-platform/nginx/conf.d/
+cp /opt/kartin/nginx/expenses.cuty.center.conf /opt/cuty-platform/nginx/conf.d/
 cd /opt/cuty-platform && docker compose -f docker-compose.prod.yml exec nginx nginx -t
 docker compose -f docker-compose.prod.yml restart nginx
 ```
 
 **Local dev** still uses port `5568` via `docker compose up` — production does not bind that port on the VPS host.
+
+## Cloud installation (control + tenant planes)
+
+StartupOS Cloud splits the same codebase into two deployments:
+
+| Plane | Host | `STARTUPOS_PLANE` | Database |
+|-------|------|-------------------|----------|
+| Control | `setup.kartin.ir` | `control` | `DATABASE_URL_CONTROL` |
+| Tenant | `{slug}.kartin.ir` | `tenant` | per-tenant `DATABASE_URL` |
+
+Copy [`env.cloud.example`](env.cloud.example) and set:
+
+- `DATABASE_URL_CONTROL` — control-plane registry (organizations, provisioning jobs)
+- `TENANT_DATABASE_URL_TEMPLATE` — e.g. `postgresql://user:pass@db:5432/kartin_{slug}`
+- `PROVISIONING_SECRET` — optional header `x-provisioning-secret` for provision API
+- `SMS_PROVIDER=kavenegar` + `KAVENEGAR_API_KEY` in production; `dev` locally (OTP visible at `/api/dev/sms/latest`)
+
+**DNS / nginx**
+
+- `setup.kartin.ir` → control-plane container (setup wizard only)
+- `*.kartin.ir` → tenant router (Host header → tenant stack)
+
+**Local dev**
+
+```bash
+docker compose up db app control
+# Tenant app:  http://localhost:5568
+# Setup portal: http://localhost:5569/setup
+```
+
+Cloud tenant containers skip auto-seed on boot (`STARTUPOS_MODE=cloud`); Super Admin is created via the setup wizard provision step.

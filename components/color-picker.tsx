@@ -9,7 +9,7 @@ type ColorPickerProps = {
 };
 
 export function ColorPicker({ value, onChange, id, className }: ColorPickerProps) {
-  const safeValue = value || "#059669";
+  const safeValue = value || "#534AB7";
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <input

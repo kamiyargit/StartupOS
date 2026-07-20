@@ -1,7 +1,7 @@
 #!/bin/sh
 # Pre-pull production infra images via Iranian Docker mirrors when Docker Hub is blocked.
-# Tags results as postgres:16-alpine and nginx:alpine for cuty-expenses prod stack.
-# Run on the VPS from /opt/cuty-expenses: sh ensure-prod-base-images.sh
+# Tags results as postgres:16-alpine and nginx:alpine for kartin prod stack.
+# Run on the VPS from /opt/kartin: sh ensure-prod-base-images.sh
 
 set -e
 
@@ -76,4 +76,4 @@ if [ "$failed" -ne 0 ]; then
 fi
 
 echo ""
-echo "All cuty-expenses base images are ready locally."
+echo "All kartin base images are ready locally."

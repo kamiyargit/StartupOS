@@ -1,4 +1,5 @@
 import { requireSession, jsonError } from "@/lib/auth-helpers";
+import { isTwoFactorMandatory } from "@/lib/app-settings";
 import { verifyUserCredentials } from "@/lib/credentials-auth";
 import { prisma } from "@/lib/prisma";
 import { decryptSecret, verifyTotpCode } from "@/lib/two-factor";
@@ -12,6 +13,16 @@ export async function POST(req: Request) {
 
     if (!password || !code) {
       return Response.json({ error: "رمز عبور و کد احراز هویت الزامی است." }, { status: 400 });
+    }
+
+    if (await isTwoFactorMandatory()) {
+      return Response.json(
+        {
+          error:
+            "احراز هویت دو مرحله‌ای توسط مدیر الزامی شده و قابل غیرفعال‌سازی نیست.",
+        },
+        { status: 403 },
+      );
     }
 
     const user = await prisma.user.findUnique({

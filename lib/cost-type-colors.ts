@@ -1,5 +1,5 @@
 export const DEFAULT_COST_TYPE_COLORS = [
-  "#059669",
+  "#534AB7",
   "#0891b2",
   "#6366f1",
   "#db2777",

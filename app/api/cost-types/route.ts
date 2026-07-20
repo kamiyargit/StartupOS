@@ -14,7 +14,7 @@ function mapType(t: {
   return {
     id: t.id,
     name: t.name,
-    color: t.color ?? "#059669",
+    color: t.color ?? "#534AB7",
     isActive: t.isActive,
     createdAt: t.createdAt.toISOString(),
     expenseCount: t._count.expenses,

@@ -7,4 +7,4 @@ COPY scripts ./scripts
 RUN pnpm install --frozen-lockfile
 COPY . .
 EXPOSE 3000
-CMD ["sh", "-c", "node scripts/apply-radix-compose-refs-patch.mjs && npx prisma db push && npx prisma generate && npx tsx prisma/seed.ts && npx next dev --hostname 0.0.0.0 --webpack"]
+CMD ["sh", "docker/entrypoint.dev.sh"]

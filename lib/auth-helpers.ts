@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { Role } from "@prisma/client";
+import { isAdminRole } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 
 async function resolveDbUserId(session: {
@@ -36,8 +37,22 @@ export async function requireSession() {
 
 export async function requireAdmin() {
   const session = await requireSession();
-  if (session.user.role !== Role.ADMIN) {
+  if (!session.user.role || !isAdminRole(session.user.role)) {
     throw new Error("FORBIDDEN");
+  }
+  return session;
+}
+
+export async function requireSuperAdmin() {
+  const session = await requireSession();
+  if (session.user.role !== Role.SUPER_ADMIN) {
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { isSuperAdmin: true, role: true },
+    });
+    if (!user?.isSuperAdmin && user?.role !== Role.SUPER_ADMIN) {
+      throw new Error("FORBIDDEN");
+    }
   }
   return session;
 }

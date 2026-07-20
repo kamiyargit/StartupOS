@@ -10,12 +10,26 @@ import {
   jalaliYearRange,
   parseMonthList,
   periodWhereFromFilters,
+  jalaliPeriodRanges,
   type JalaliYearScope,
 } from "@/lib/dates";
 import { DashboardStats } from "@/lib/dto";
 import { sumSettledOnShare } from "@/lib/financier-payments";
 
 dayjs.extend(jalaliday);
+
+async function sumIncomeByCurrency(where: Prisma.IncomeRecordWhereInput) {
+  const rows = await prisma.incomeRecord.groupBy({
+    by: ["currency"],
+    where,
+    _sum: { amount: true },
+  });
+  const totals = { TOMAN: BigInt(0), USD: BigInt(0) };
+  for (const row of rows) {
+    totals[row.currency] = BigInt((row._sum.amount ?? 0).toString());
+  }
+  return totals;
+}
 
 async function sumByCurrency(where: Prisma.ExpenseWhereInput) {
   const rows = await prisma.expense.groupBy({
@@ -89,7 +103,35 @@ export async function GET(req: Request) {
             },
           };
 
-    const [allTotals, periodTotals, countAll, countPeriod, byType, chartExpenses, financierShareRows] =
+    const incomeBaseWhere: Prisma.IncomeRecordWhereInput = { deletedAt: null };
+    const incomeRanges = jalaliPeriodRanges({ jy, months, minJalaliYear, maxJalaliYear });
+    let incomePeriodWhere: Prisma.IncomeRecordWhereInput = incomeBaseWhere;
+    if (incomeRanges.length === 1) {
+      incomePeriodWhere = {
+        ...incomeBaseWhere,
+        incomeDate: { gte: incomeRanges[0].start, lte: incomeRanges[0].end },
+      };
+    } else if (incomeRanges.length > 1) {
+      incomePeriodWhere = {
+        ...incomeBaseWhere,
+        OR: incomeRanges.map(({ start, end }) => ({
+          incomeDate: { gte: start, lte: end },
+        })),
+      };
+    }
+
+    const chartIncomeWhere: Prisma.IncomeRecordWhereInput =
+      jy === "all"
+        ? incomePeriodWhere
+        : {
+            ...incomeBaseWhere,
+            incomeDate: {
+              gte: jalaliYearRange(jy).start,
+              lte: jalaliYearRange(jy).end,
+            },
+          };
+
+    const [allTotals, periodTotals, countAll, countPeriod, byType, chartExpenses, chartIncome, financierShareRows, allIncome, periodIncome, byIncomeCategory] =
       await Promise.all([
         sumByCurrency(baseWhere),
         sumByCurrency(periodWhere),
@@ -105,6 +147,11 @@ export async function GET(req: Request) {
           select: { factorDate: true, amount: true, currency: true },
           orderBy: { factorDate: "asc" },
         }),
+        prisma.incomeRecord.findMany({
+          where: chartIncomeWhere,
+          select: { incomeDate: true, amount: true, currency: true },
+          orderBy: { incomeDate: "asc" },
+        }),
         prisma.expenseFinancierShare.findMany({
           where: {
             expense: periodWhere,
@@ -115,6 +162,13 @@ export async function GET(req: Request) {
             payments: { select: { amount: true, kind: true } },
           },
         }),
+        sumIncomeByCurrency(incomeBaseWhere),
+        sumIncomeByCurrency(incomePeriodWhere),
+        prisma.incomeRecord.groupBy({
+          by: ["categoryId", "currency"],
+          where: incomePeriodWhere,
+          _sum: { amount: true },
+        }),
       ]);
 
     const typeIdsFromGroup = [...new Set(byType.map((b) => b.costFactorTypeId))];
@@ -123,13 +177,23 @@ export async function GET(req: Request) {
     });
     const typeMap = Object.fromEntries(types.map((t) => [t.id, t]));
 
+    const incomeCategoryIds = [...new Set(byIncomeCategory.map((b) => b.categoryId).filter(Boolean))] as string[];
+    const incomeCategories = await prisma.incomeCategory.findMany({
+      where: { id: { in: incomeCategoryIds } },
+    });
+    const incomeCategoryMap = Object.fromEntries(incomeCategories.map((c) => [c.id, c]));
+
     const effectiveMonths =
       months.length === 0 ? Array.from({ length: 12 }, (_, i) => i + 1) : months;
 
     const monthBucketsToman = new Map<string, bigint>();
     const monthBucketsUsd = new Map<string, bigint>();
+    const monthIncomeBucketsToman = new Map<string, bigint>();
+    const monthIncomeBucketsUsd = new Map<string, bigint>();
     const yearBucketsToman = new Map<string, bigint>();
     const yearBucketsUsd = new Map<string, bigint>();
+    const yearIncomeBucketsToman = new Map<string, bigint>();
+    const yearIncomeBucketsUsd = new Map<string, bigint>();
 
     for (const e of chartExpenses) {
       const jalali = dayjs(e.factorDate).calendar("jalali");
@@ -152,6 +216,31 @@ export async function GET(req: Request) {
           yearBucketsToman.set(key, (yearBucketsToman.get(key) ?? BigInt(0)) + amount);
         } else {
           yearBucketsUsd.set(key, (yearBucketsUsd.get(key) ?? BigInt(0)) + amount);
+        }
+      }
+    }
+
+    for (const row of chartIncome) {
+      const jalali = dayjs(row.incomeDate).calendar("jalali");
+      const monthNum = jalali.month() + 1;
+      const yearNum = jalali.year();
+      const amount = BigInt(row.amount.toString());
+
+      if (chartMode === "months") {
+        if (!effectiveMonths.includes(monthNum)) continue;
+        const key = jalali.format("YYYY/MM");
+        if (row.currency === "TOMAN") {
+          monthIncomeBucketsToman.set(key, (monthIncomeBucketsToman.get(key) ?? BigInt(0)) + amount);
+        } else {
+          monthIncomeBucketsUsd.set(key, (monthIncomeBucketsUsd.get(key) ?? BigInt(0)) + amount);
+        }
+      } else {
+        if (!effectiveMonths.includes(monthNum)) continue;
+        const key = String(yearNum);
+        if (row.currency === "TOMAN") {
+          yearIncomeBucketsToman.set(key, (yearIncomeBucketsToman.get(key) ?? BigInt(0)) + amount);
+        } else {
+          yearIncomeBucketsUsd.set(key, (yearIncomeBucketsUsd.get(key) ?? BigInt(0)) + amount);
         }
       }
     }
@@ -209,6 +298,10 @@ export async function GET(req: Request) {
 
     const periodAmountToman = periodTotals.TOMAN.toString();
     const periodAmountUsd = periodTotals.USD.toString();
+    const periodIncomeToman = periodIncome.TOMAN.toString();
+    const periodIncomeUsd = periodIncome.USD.toString();
+    const profitLossToman = (periodIncome.TOMAN - periodTotals.TOMAN).toString();
+    const profitLossUsd = (periodIncome.USD - periodTotals.USD).toString();
 
     const stats: DashboardStats = {
       totalAmountToman: allTotals.TOMAN.toString(),
@@ -226,7 +319,7 @@ export async function GET(req: Request) {
         return {
           typeId: b.costFactorTypeId,
           name: type?.name ?? "نامشخص",
-          color: type?.color ?? "#059669",
+          color: type?.color ?? "#534AB7",
           amount: (b._sum.amount ?? 0).toString(),
           currency: b.currency,
         };
@@ -239,6 +332,14 @@ export async function GET(req: Request) {
         month,
         amount: amount.toString(),
       })),
+      byMonthIncomeToman: Array.from(monthIncomeBucketsToman.entries()).map(([month, amount]) => ({
+        month,
+        amount: amount.toString(),
+      })),
+      byMonthIncomeUsd: Array.from(monthIncomeBucketsUsd.entries()).map(([month, amount]) => ({
+        month,
+        amount: amount.toString(),
+      })),
       byYearToman: jalaliYearOptions(minJalaliYear, maxJalaliYear).map((year) => ({
         year: String(year),
         amount: (yearBucketsToman.get(String(year)) ?? BigInt(0)).toString(),
@@ -246,6 +347,14 @@ export async function GET(req: Request) {
       byYearUsd: jalaliYearOptions(minJalaliYear, maxJalaliYear).map((year) => ({
         year: String(year),
         amount: (yearBucketsUsd.get(String(year)) ?? BigInt(0)).toString(),
+      })),
+      byYearIncomeToman: jalaliYearOptions(minJalaliYear, maxJalaliYear).map((year) => ({
+        year: String(year),
+        amount: (yearIncomeBucketsToman.get(String(year)) ?? BigInt(0)).toString(),
+      })),
+      byYearIncomeUsd: jalaliYearOptions(minJalaliYear, maxJalaliYear).map((year) => ({
+        year: String(year),
+        amount: (yearIncomeBucketsUsd.get(String(year)) ?? BigInt(0)).toString(),
       })),
       financierTotals: Array.from(financierTotalsMap.values())
         .sort((a, b) => a.userName.localeCompare(b.userName))
@@ -265,6 +374,22 @@ export async function GET(req: Request) {
           owedToMe: item.owedToMe.toString(),
           iOwe: item.iOwe.toString(),
         })),
+      totalIncomeToman: allIncome.TOMAN.toString(),
+      periodIncomeToman,
+      totalIncomeUsd: allIncome.USD.toString(),
+      periodIncomeUsd,
+      profitLossToman,
+      profitLossUsd,
+      byIncomeCategory: byIncomeCategory.map((b) => {
+        const cat = b.categoryId ? incomeCategoryMap[b.categoryId] : null;
+        return {
+          categoryId: b.categoryId ?? "none",
+          name: cat?.name ?? "بدون دسته",
+          color: cat?.color ?? "#2563eb",
+          amount: (b._sum.amount ?? 0).toString(),
+          currency: b.currency,
+        };
+      }),
     };
 
     return Response.json(stats);

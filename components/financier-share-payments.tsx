@@ -93,13 +93,13 @@ const fundingLabels: Record<ExpenseFundingStatus, string> = {
 const statusClasses: Record<FinancierSharePaymentStatus, string> = {
   unpaid: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
   partial: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300",
-  paid: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  paid: "bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300",
 };
 
 const fundingClasses: Record<ExpenseFundingStatus, string> = {
   unfunded: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
   partial: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300",
-  funded: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  funded: "bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300",
 };
 
 function PaymentDocumentLink({
@@ -112,7 +112,7 @@ function PaymentDocumentLink({
       href={attachment.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:underline dark:text-emerald-400"
+      className="inline-flex items-center gap-1 text-xs text-primary-600 hover:underline dark:text-primary-400"
     >
       {attachment.mimeType.startsWith("image/") ? (
         <ImageIcon className="h-3.5 w-3.5" />
@@ -557,7 +557,7 @@ export function FinancierSharePayments({
 
             <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-gh-neutral">
               <div
-                className="h-full rounded-full bg-emerald-500 transition-all"
+                className="h-full rounded-full bg-primary-500 transition-all"
                 style={{ width: `${Math.min(progress, 100)}%` }}
               />
             </div>

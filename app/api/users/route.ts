@@ -1,7 +1,9 @@
+import { Role } from "@prisma/client";
 import { requireSession, requireAdmin, jsonError } from "@/lib/auth-helpers";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { UserDTO } from "@/lib/dto";
+import { buildPaginatedResult, parsePaginationParams } from "@/lib/pagination";
 
 function normalizeSharePercent(value: unknown): number {
   const num = Number(value ?? 0);
@@ -17,7 +19,8 @@ function mapUser(u: {
   phone: string | null;
   position: string | null;
   avatarUrl: string | null;
-  role: "ADMIN" | "USER";
+  role: Role;
+  isSuperAdmin?: boolean;
   isActive: boolean;
   isFinancier: boolean;
   sharePercent: Prisma.Decimal;
@@ -34,6 +37,7 @@ function mapUser(u: {
     position: u.position,
     avatarUrl: u.avatarUrl,
     role: u.role,
+    isSuperAdmin: u.isSuperAdmin,
     isActive: u.isActive,
     isFinancier: u.isFinancier,
     sharePercent: u.sharePercent.toString(),
@@ -43,11 +47,43 @@ function mapUser(u: {
   };
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     await requireSession();
-    const users = await prisma.user.findMany({ orderBy: { fullName: "asc" } });
-    return Response.json(users.map(mapUser));
+    const { searchParams } = new URL(req.url);
+
+    if (searchParams.get("all") === "true") {
+      const users = await prisma.user.findMany({ orderBy: { fullName: "asc" } });
+      return Response.json(users.map(mapUser));
+    }
+
+    const q = searchParams.get("q") ?? "";
+    const role = searchParams.get("role");
+    const isActive = searchParams.get("isActive");
+    const isFinancier = searchParams.get("isFinancier");
+    const { page, pageSize, skip, take } = parsePaginationParams(searchParams);
+
+    const where: Prisma.UserWhereInput = {};
+    if (q) {
+      where.OR = [
+        { fullName: { contains: q, mode: "insensitive" } },
+        { email: { contains: q, mode: "insensitive" } },
+        { username: { contains: q, mode: "insensitive" } },
+        { position: { contains: q, mode: "insensitive" } },
+      ];
+    }
+    if (role === "ADMIN" || role === "USER" || role === "SUPER_ADMIN") where.role = role;
+    if (isActive === "true") where.isActive = true;
+    if (isActive === "false") where.isActive = false;
+    if (isFinancier === "true") where.isFinancier = true;
+    if (isFinancier === "false") where.isFinancier = false;
+
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({ where, orderBy: { fullName: "asc" }, skip, take }),
+      prisma.user.count({ where }),
+    ]);
+
+    return Response.json(buildPaginatedResult(users.map(mapUser), total, page, pageSize));
   } catch (error) {
     return jsonError(error);
   }

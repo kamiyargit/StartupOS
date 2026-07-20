@@ -27,12 +27,13 @@ import {
   Gavel,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isAdminRole } from "@/lib/deployment-client";
 
 function statusClass(status: MeetingMinutesDTO["status"]) {
   return cn(
     "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
     status === "APPROVED"
-      ? "bg-emerald-50 text-emerald-700 dark:bg-[#033a16] dark:text-gh-success"
+      ? "bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-400"
       : "bg-amber-50 text-amber-700 dark:bg-[#3d2e00] dark:text-[#d29922]",
   );
 }
@@ -44,13 +45,13 @@ export default function MeetingMinutesDetailPage() {
   const [item, setItem] = useState<MeetingMinutesDTO | null>(null);
   const [users, setUsers] = useState<UserDTO[]>([]);
 
-  const isAdmin = session?.user?.role === "ADMIN";
+  const isAdmin = isAdminRole(session?.user?.role ?? "");
 
   useEffect(() => {
     fetch(`/api/meeting-minutes/${id}`)
       .then((r) => r.json())
       .then(setItem);
-    fetch("/api/users")
+    fetch("/api/users?all=true")
       .then((r) => r.json())
       .then(setUsers);
   }, [id]);
@@ -225,12 +226,15 @@ export default function MeetingMinutesDetailPage() {
                 <div className="space-y-2">
                   <p className="text-xs font-medium text-slate-500 dark:text-gh-fg-muted">مهمان‌ها</p>
                   <div className="flex flex-wrap gap-2">
-                    {attendees.guests.map((name, i) => (
+                    {attendees.guests.map((guest, i) => (
                       <span
-                        key={`guest-${i}-${name}`}
-                        className="inline-flex items-center rounded-full bg-amber-50 px-3 py-1 text-sm text-amber-800 dark:bg-[#3d2e00] dark:text-[#d29922]"
+                        key={`guest-${i}-${guest.name}`}
+                        className="inline-flex flex-col rounded-lg bg-amber-50 px-3 py-1.5 text-sm text-amber-800 dark:bg-[#3d2e00] dark:text-[#d29922]"
                       >
-                        {name}
+                        <span>{guest.name} (مهمان)</span>
+                        {guest.description && (
+                          <span className="text-xs opacity-80">{guest.description}</span>
+                        )}
                       </span>
                     ))}
                   </div>
@@ -294,7 +298,7 @@ export default function MeetingMinutesDetailPage() {
               href={doc.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="group block overflow-hidden rounded-lg border border-slate-200 transition hover:border-emerald-400 dark:border-gh-border dark:hover:border-emerald-600 sm:max-w-lg"
+              className="group block overflow-hidden rounded-lg border border-slate-200 transition hover:border-primary-400 dark:border-gh-border dark:hover:border-primary-600 sm:max-w-lg"
             >
               {doc.mimeType.startsWith("image/") ? (
                 <div className="aspect-video bg-slate-100 dark:bg-gh-neutral">
@@ -307,15 +311,15 @@ export default function MeetingMinutesDetailPage() {
                 </div>
               ) : (
                 <div className="flex aspect-video flex-col items-center justify-center gap-2 bg-slate-50 dark:bg-gh-neutral">
-                  <FileText className="h-14 w-14 text-emerald-600 dark:text-gh-success" />
+                  <FileText className="h-14 w-14 text-primary-600 dark:text-primary-400" />
                   <span className="text-sm text-slate-500 dark:text-gh-fg-muted">PDF / سند</span>
                 </div>
               )}
               <div className="flex items-center gap-2 border-t border-slate-100 p-3 dark:border-gh-border">
                 {doc.mimeType.startsWith("image/") ? (
-                  <ImageIcon className="h-4 w-4 shrink-0 text-emerald-600 dark:text-gh-success" />
+                  <ImageIcon className="h-4 w-4 shrink-0 text-primary-600 dark:text-primary-400" />
                 ) : (
-                  <FileText className="h-4 w-4 shrink-0 text-emerald-600 dark:text-gh-success" />
+                  <FileText className="h-4 w-4 shrink-0 text-primary-600 dark:text-primary-400" />
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{doc.fileName}</p>

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { expenseInclude, mapExpense } from "@/lib/expense-mapper";
 import { jalaliMonthRange } from "@/lib/dates";
 import { createFinancierSharePayments } from "@/lib/expense-financier-shares";
+import { buildPaginatedResult, parsePaginationParams } from "@/lib/pagination";
 
 export async function GET(req: Request) {
   try {
@@ -15,6 +16,7 @@ export async function GET(req: Request) {
     const userId = searchParams.get("userId");
     const jy = searchParams.get("jy");
     const jm = searchParams.get("jm");
+    const { page, pageSize, skip, take } = parsePaginationParams(searchParams);
 
     const where: Prisma.ExpenseWhereInput = { deletedAt: null };
 
@@ -32,13 +34,18 @@ export async function GET(req: Request) {
       where.factorDate = { gte: start, lte: end };
     }
 
-    const expenses = await prisma.expense.findMany({
-      where,
-      include: expenseInclude,
-      orderBy: { factorDate: "desc" },
-    });
+    const [expenses, total] = await Promise.all([
+      prisma.expense.findMany({
+        where,
+        include: expenseInclude,
+        orderBy: { factorDate: "desc" },
+        skip,
+        take,
+      }),
+      prisma.expense.count({ where }),
+    ]);
 
-    return Response.json(expenses.map(mapExpense));
+    return Response.json(buildPaginatedResult(expenses.map(mapExpense), total, page, pageSize));
   } catch (error) {
     return jsonError(error);
   }

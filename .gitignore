@@ -17,6 +17,8 @@
 
 # next.js
 /.next/
+/.next-tenant/
+/.next-control/
 /out/
 
 # production
@@ -45,3 +47,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# generated prisma clients
+/generated/

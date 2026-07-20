@@ -16,11 +16,13 @@ import {
 import { DualDatePicker } from "@/components/dual-date-picker";
 import { CurrencyAmountInput } from "@/components/currency-amount-input";
 import { FileUpload, UploadedFile } from "@/components/file-upload";
+import { AttachmentGrid } from "@/components/attachment-viewer";
 import {
   DraftFinancierPayment,
   FinancierSharePayments,
 } from "@/components/financier-share-payments";
-import { CostFactorTypeDTO, ExpenseDTO, ExpenseFinancierShareDTO, UserDTO } from "@/lib/dto";
+import { CostFactorTypeDTO, ExpenseAttachmentDTO, ExpenseDTO, ExpenseFinancierShareDTO, UserDTO } from "@/lib/dto";
+import { isAdminRole } from "@/lib/deployment-client";
 import { ExpenseCurrency } from "@/lib/currency";
 import { calculateFinancierAmounts } from "@/lib/financier-shares";
 import { deriveSharePaymentStatus, sumSettledOnShare, sumExpenseFunding, deriveExpenseFundingStatus } from "@/lib/financier-payments";
@@ -52,6 +54,7 @@ type ExpenseFormProps = {
   expenseAddedByUserId?: string;
   initial?: Omit<Partial<ExpenseFormValues>, "financierShares"> & {
     financierShares?: ExpenseFinancierShareDTO[];
+    existingAttachments?: ExpenseAttachmentDTO[];
   };
   submitLabel: string;
   loadingLabel: string;
@@ -79,6 +82,10 @@ export function ExpenseForm({
   const [description, setDescription] = useState(initial?.description ?? "");
   const [factorDate, setFactorDate] = useState<Date | null>(initial?.factorDate ?? new Date());
   const [files, setFiles] = useState<UploadedFile[]>(initial?.files ?? []);
+  const [existingAttachments, setExistingAttachments] = useState<ExpenseAttachmentDTO[]>(
+    initial?.existingAttachments ?? [],
+  );
+  const [removingAttachmentId, setRemovingAttachmentId] = useState<string | null>(null);
   const [liveFinancierShares, setLiveFinancierShares] = useState<ExpenseFinancierShareDTO[]>(
     initial?.financierShares ?? [],
   );
@@ -93,7 +100,7 @@ export function ExpenseForm({
 
     let cancelled = false;
 
-    Promise.all([fetch("/api/cost-types"), fetch("/api/users")])
+    Promise.all([fetch("/api/cost-types"), fetch("/api/users?all=true")])
       .then(async ([typesRes, usersRes]) => {
         const typesData: CostFactorTypeDTO[] = await typesRes.json();
         const usersData: UserDTO[] = await usersRes.json();
@@ -218,7 +225,7 @@ export function ExpenseForm({
   const canManageShare = (share: ExpenseFinancierShareDTO) => {
     const creatorId = expenseAddedByUserId ?? addedByUserId;
     if (!session?.user?.id) return false;
-    if (session.user.role === "ADMIN") return true;
+    if (isAdminRole(session.user.role)) return true;
     if (creatorId === session.user.id) return true;
     if (share.userId === session.user.id) return true;
     return false;
@@ -383,16 +390,38 @@ export function ExpenseForm({
       </div>
 
       <div className="space-y-2">
-        <Label>{requireNewFiles ? "فاکتور (تصویر / PDF) *" : "افزودن فاکتور جدید"}</Label>
-        <FileUpload value={files} onChange={setFiles} />
-        {!requireNewFiles && files.length > 0 && (
-          <p className="text-xs text-slate-500">فایل‌های قبلی در بخش جزئیات نمایش داده می‌شوند.</p>
+        <Label>{requireNewFiles ? "فاکتور (تصویر / PDF) *" : "پیوست‌های فاکتور"}</Label>
+        {!requireNewFiles && existingAttachments.length > 0 && (
+          <AttachmentGrid
+            attachments={existingAttachments}
+            removingId={removingAttachmentId}
+            onRemove={async (id) => {
+              if (!confirm("این پیوست حذف شود؟ (حذف امن — قابل بازیابی توسط مدیر)")) return;
+              setRemovingAttachmentId(id);
+              const res = await fetch(`/api/files/${id}`, { method: "DELETE" });
+              setRemovingAttachmentId(null);
+              if (!res.ok) {
+                toast.error("خطا در حذف پیوست");
+                return;
+              }
+              setExistingAttachments((prev) => prev.filter((a) => a.id !== id));
+              toast.success("پیوست حذف شد.");
+            }}
+          />
         )}
+        <div className="space-y-2">
+          {!requireNewFiles && (
+            <Label className="text-sm font-normal text-slate-500">افزودن فاکتور جدید</Label>
+          )}
+          <FileUpload value={files} onChange={setFiles} />
+        </div>
       </div>
 
-      <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? loadingLabel : submitLabel}
-      </Button>
+      <div className="flex gap-2">
+        <Button type="submit" className="flex-1" disabled={loading}>
+          {loading ? loadingLabel : submitLabel}
+        </Button>
+      </div>
     </form>
   );
 }

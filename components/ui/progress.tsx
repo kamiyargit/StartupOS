@@ -16,7 +16,7 @@ export function Progress({ value, className }: ProgressProps) {
       aria-valuemax={100}
     >
       <div
-        className="h-full rounded-full bg-emerald-600 transition-all duration-200"
+        className="h-full rounded-full bg-primary-600 transition-all duration-200"
         style={{ width: `${clamped}%` }}
       />
     </div>

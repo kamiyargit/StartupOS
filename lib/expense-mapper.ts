@@ -19,13 +19,13 @@ import {
 export const expenseInclude = {
   costFactorType: true,
   addedBy: true,
-  attachments: true,
+  attachments: { where: { deletedAt: null } },
   financierShares: {
     include: {
       user: true,
       creditor: true,
       payments: {
-        include: { attachment: true, payee: true },
+        include: { attachment: { where: { deletedAt: null } }, payee: true },
         orderBy: { paymentDate: "asc" as const },
       },
     },
@@ -71,7 +71,7 @@ export function mapExpense(e: ExpenseWithRelations): ExpenseDTO {
     id: e.id,
     costFactorTypeId: e.costFactorTypeId,
     costFactorTypeName: e.costFactorType.name,
-    costFactorTypeColor: e.costFactorType.color ?? "#059669",
+    costFactorTypeColor: e.costFactorType.color ?? "#534AB7",
     addedByUserId: e.addedByUserId,
     addedByName: e.addedBy.fullName,
     amount: e.amount.toString(),

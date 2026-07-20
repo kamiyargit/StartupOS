@@ -1,41 +1,62 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Eye, Search } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { MeetingMinutesDTO } from "@/lib/dto";
+import { Pagination } from "@/components/pagination";
+import { MeetingMinutesDTO, PaginatedResponse } from "@/lib/dto";
 import { meetingMinutesStatusLabel } from "@/lib/meeting-minutes-labels";
 import { cn } from "@/lib/utils";
+import { isAdminRole } from "@/lib/deployment-client";
 
 export default function MeetingMinutesPage() {
   const { data: session } = useSession();
-  const isAdmin = session?.user?.role === "ADMIN";
+  const isAdmin = isAdminRole(session?.user?.role ?? "");
   const [items, setItems] = useState<MeetingMinutesDTO[]>([]);
   const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [pageSize] = useState(20);
   const [loading, setLoading] = useState(true);
 
-  const load = () => {
-    setLoading(true);
-    const params = q ? `?q=${encodeURIComponent(q)}` : "";
-    fetch(`/api/meeting-minutes${params}`)
-      .then((r) => r.json())
-      .then(setItems)
-      .finally(() => setLoading(false));
-  };
+  const load = useCallback(
+    (targetPage = page) => {
+      setLoading(true);
+      const params = new URLSearchParams({ page: String(targetPage), pageSize: String(pageSize) });
+      if (q) params.set("q", q);
+      fetch(`/api/meeting-minutes?${params}`)
+        .then((r) => r.json())
+        .then((data: PaginatedResponse<MeetingMinutesDTO>) => {
+          setItems(data.items ?? []);
+          setTotal(data.total ?? 0);
+          setTotalPages(data.totalPages ?? 1);
+          setPage(data.page ?? targetPage);
+        })
+        .finally(() => setLoading(false));
+    },
+    [page, pageSize, q],
+  );
 
   useEffect(() => {
-    load();
+    load(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const onSearch = () => {
+    setPage(1);
+    load(1);
+  };
 
   const statusClass = (status: MeetingMinutesDTO["status"]) =>
     cn(
       "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
       status === "APPROVED"
-        ? "bg-emerald-50 text-emerald-700 dark:bg-[#033a16] dark:text-gh-success"
+        ? "bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-400"
         : "bg-amber-50 text-amber-700 dark:bg-[#3d2e00] dark:text-[#d29922]",
     );
 
@@ -63,10 +84,10 @@ export default function MeetingMinutesPage() {
                 placeholder="جستجو در موضوع، حاضرین، خلاصه..."
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && load()}
+                onKeyDown={(e) => e.key === "Enter" && onSearch()}
               />
             </div>
-            <Button variant="outline" onClick={load} className="w-full sm:w-auto">
+            <Button variant="outline" onClick={onSearch} className="w-full sm:w-auto">
               جستجو
             </Button>
           </div>
@@ -136,6 +157,15 @@ export default function MeetingMinutesPage() {
                   </tbody>
                 </table>
               </div>
+
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                total={total}
+                pageSize={pageSize}
+                onPageChange={(p) => load(p)}
+                className="mt-4"
+              />
             </>
           )}
         </CardContent>

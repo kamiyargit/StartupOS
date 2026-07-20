@@ -8,8 +8,22 @@ datasource db {
 }
 
 enum Role {
+  SUPER_ADMIN
   ADMIN
   USER
+}
+
+enum InstallationStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum OtpPurpose {
+  SUPER_ADMIN_PASSWORD_CHANGE
+  SUPER_ADMIN_PHONE_VERIFY
+  SETUP_ADMIN_VERIFY
 }
 
 enum Currency {
@@ -28,31 +42,73 @@ enum FinancierPaymentKind {
   REIMBURSEMENT
 }
 
-model User {
-  id           String   @id @default(cuid())
-  username     String   @unique
-  email        String   @unique
-  passwordHash String
-  fullName     String
-  phone        String?
-  position     String?
-  avatarUrl    String?
-  role         Role     @default(USER)
-  isActive     Boolean  @default(true)
-  isFinancier        Boolean  @default(false)
-  sharePercent       Decimal  @default(0) @db.Decimal(5, 2)
-  twoFactorEnabled   Boolean  @default(false)
-  twoFactorSecret    String?
-  createdAt          DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+enum TwoFactorPolicy {
+  OPTIONAL
+  MANDATORY
+}
 
-  expenses            Expense[]
-  financedShares      ExpenseFinancierShare[]
-  creditorFinancierShares ExpenseFinancierShare[] @relation("ShareCreditor")
-  uploadedAttachments ExpenseAttachment[] @relation("UploadedBy")
-  financierSharePayments ExpenseFinancierSharePayment[]
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum IncomeSourceType {
+  CUSTOMER
+  INVESTOR
+  PARTNER
+  GRANT
+  OTHER
+}
+
+enum IncomePaymentStatus {
+  PENDING
+  RECEIVED
+  PARTIAL
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+model User {
+  id                String   @id @default(cuid())
+  username          String   @unique
+  email             String   @unique
+  passwordHash      String
+  fullName          String
+  phone             String?
+  position          String?
+  avatarUrl         String?
+  role              Role     @default(USER)
+  isSuperAdmin      Boolean  @default(false)
+  phoneVerified     Boolean  @default(false)
+  phoneVerifiedAt   DateTime?
+  isActive          Boolean  @default(true)
+  isFinancier       Boolean  @default(false)
+  sharePercent      Decimal  @default(0) @db.Decimal(5, 2)
+  twoFactorEnabled  Boolean  @default(false)
+  twoFactorSecret   String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  expenses                  Expense[]
+  financedShares            ExpenseFinancierShare[]
+  creditorFinancierShares   ExpenseFinancierShare[] @relation("ShareCreditor")
+  uploadedAttachments         ExpenseAttachment[] @relation("UploadedBy")
+  financierSharePayments    ExpenseFinancierSharePayment[]
   receivedFinancierPayments ExpenseFinancierSharePayment[] @relation("PaymentPayee")
-  meetingMinutes      MeetingMinutes[]
+  meetingMinutes            MeetingMinutes[]
+  assignedTasks             Task[] @relation("TaskAssignee")
+  createdTasks              Task[] @relation("TaskCreator")
+  taskAcknowledgements      TaskAcknowledgement[]
+  taskAcknowledgementRequests TaskAcknowledgement[] @relation("AcknowledgementRequester")
 }
 
 model CostFactorType {
@@ -78,9 +134,9 @@ model Expense {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  costFactorType CostFactorType      @relation(fields: [costFactorTypeId], references: [id])
-  addedBy        User                @relation(fields: [addedByUserId], references: [id])
-  attachments    ExpenseAttachment[]
+  costFactorType  CostFactorType          @relation(fields: [costFactorTypeId], references: [id])
+  addedBy         User                    @relation(fields: [addedByUserId], references: [id])
+  attachments     ExpenseAttachment[]
   financierShares ExpenseFinancierShare[]
 }
 
@@ -122,7 +178,7 @@ model ExpenseFinancierSharePayment {
 }
 
 model ExpenseAttachment {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   expenseId        String?
   meetingMinutesId String?
   uploadedByUserId String
@@ -130,12 +186,15 @@ model ExpenseAttachment {
   mimeType         String
   sizeBytes        Int
   storagePath      String
-  createdAt        DateTime @default(now())
+  deletedAt        DateTime?
+  createdAt        DateTime  @default(now())
 
-  expense        Expense?                       @relation(fields: [expenseId], references: [id], onDelete: Cascade)
-  meetingMinutes MeetingMinutes?                @relation(fields: [meetingMinutesId], references: [id], onDelete: Cascade)
-  uploadedBy     User                           @relation("UploadedBy", fields: [uploadedByUserId], references: [id])
+  expense               Expense?                       @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  meetingMinutes        MeetingMinutes?                @relation(fields: [meetingMinutesId], references: [id], onDelete: Cascade)
+  uploadedBy            User                           @relation("UploadedBy", fields: [uploadedByUserId], references: [id])
   financierSharePayment ExpenseFinancierSharePayment?
+  incomeRecords         IncomeRecord[]
+  invoices              Invoice[]
 }
 
 model MeetingMinutes {
@@ -147,6 +206,7 @@ model MeetingMinutes {
   decisions       String?
   status          MeetingMinutesStatus @default(DRAFT)
   createdByUserId String
+  deletedAt       DateTime?
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
 
@@ -155,7 +215,195 @@ model MeetingMinutes {
 }
 
 model AppSettings {
-  id            String   @id @default("default")
-  minJalaliYear Int
-  updatedAt     DateTime @updatedAt
+  id              String          @id @default("default")
+  minJalaliYear   Int
+  twoFactorPolicy TwoFactorPolicy @default(OPTIONAL)
+  appName         String          @default("Kartin")
+  appNameShort    String          @default("Kartin")
+  appNameFa       String          @default("کارتین")
+  tagline         String?
+  logoUrl         String?
+  iconUrl         String?
+  themeColor      String          @default("#38465f")
+  updatedAt       DateTime        @updatedAt
+}
+
+model TaskBoard {
+  id        String   @id @default(cuid())
+  name      String   @default("Default Board")
+  settings  Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tasks Task[]
+}
+
+model TaskLabel {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String   @default("#059669")
+  createdAt DateTime @default(now())
+
+  tasks TaskLabelOnTask[]
+}
+
+model TaskCategory {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  tasks Task[]
+}
+
+model Task {
+  id           String       @id @default(cuid())
+  boardId      String
+  categoryId   String?
+  assigneeId   String?
+  createdById  String
+  title        String
+  description  String?
+  priority     TaskPriority @default(MEDIUM)
+  status       String       @default("todo")
+  dueDate      DateTime?    @db.Date
+  sortOrder    Int          @default(0)
+  deletedAt    DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  board            TaskBoard             @relation(fields: [boardId], references: [id])
+  category         TaskCategory?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  assignee         User?                 @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  createdBy        User                  @relation("TaskCreator", fields: [createdById], references: [id])
+  labels           TaskLabelOnTask[]
+  acknowledgements TaskAcknowledgement[]
+}
+
+model TaskLabelOnTask {
+  taskId  String
+  labelId String
+
+  task  Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  label TaskLabel @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, labelId])
+}
+
+model TaskAcknowledgement {
+  id              String    @id @default(cuid())
+  taskId          String
+  userId          String
+  requestedById   String?
+  acknowledgedAt  DateTime?
+  note            String?
+  createdAt       DateTime  @default(now())
+
+  task        Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user        User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requestedBy User? @relation("AcknowledgementRequester", fields: [requestedById], references: [id], onDelete: SetNull)
+
+  @@unique([taskId, userId])
+}
+
+model IncomeSource {
+  id        String           @id @default(cuid())
+  name      String
+  type      IncomeSourceType @default(OTHER)
+  email     String?
+  phone     String?
+  notes     String?
+  deletedAt DateTime?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  incomeRecords IncomeRecord[]
+  invoices      Invoice[]
+}
+
+model IncomeCategory {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String   @default("#2563eb")
+  createdAt DateTime @default(now())
+
+  incomeRecords IncomeRecord[]
+}
+
+model IncomeRecord {
+  id            String              @id @default(cuid())
+  sourceId      String?
+  categoryId    String?
+  attachmentId  String?
+  amount        Decimal             @db.Decimal(15, 0)
+  currency      Currency            @default(TOMAN)
+  description   String?
+  incomeDate    DateTime            @db.Date
+  paymentStatus IncomePaymentStatus @default(PENDING)
+  deletedAt     DateTime?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  source     IncomeSource?    @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  category   IncomeCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  attachment ExpenseAttachment? @relation(fields: [attachmentId], references: [id], onDelete: SetNull)
+  invoice    Invoice?
+}
+
+model Invoice {
+  id           String        @id @default(cuid())
+  sourceId     String?
+  attachmentId String?
+  incomeId     String?       @unique
+  number       String        @unique
+  status       InvoiceStatus @default(DRAFT)
+  issueDate    DateTime      @db.Date
+  dueDate      DateTime      @db.Date
+  currency     Currency      @default(TOMAN)
+  subtotal     Decimal       @db.Decimal(15, 0)
+  notes        String?
+  deletedAt    DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  source     IncomeSource?      @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  attachment ExpenseAttachment? @relation(fields: [attachmentId], references: [id], onDelete: SetNull)
+  income     IncomeRecord?      @relation(fields: [incomeId], references: [id], onDelete: SetNull)
+  lineItems  InvoiceLineItem[]
+}
+
+model InvoiceLineItem {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  description String
+  quantity    Decimal @default(1) @db.Decimal(10, 2)
+  unitPrice   Decimal @db.Decimal(15, 0)
+  sortOrder   Int     @default(0)
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model InstallationState {
+  id               String             @id @default("singleton")
+  status           InstallationStatus @default(NOT_STARTED)
+  deploymentMode   String             @default("self_hosted")
+  installerVersion String             @default("1.0.0")
+  organizationSlug String?
+  completedAt      DateTime?
+  failedAt         DateTime?
+  failureReason    String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+}
+
+model OtpChallenge {
+  id        String     @id @default(cuid())
+  phone     String
+  purpose   OtpPurpose
+  codeHash  String
+  attempts  Int        @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime   @default(now())
+
+  @@index([phone, purpose])
 }

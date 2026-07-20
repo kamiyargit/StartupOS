@@ -18,7 +18,7 @@ export function ThemedToaster() {
           title: "dark:!text-gh-fg",
           description: "dark:!text-gh-fg-muted",
           success:
-            "dark:!bg-emerald-950/90 dark:!border-emerald-800 dark:!text-emerald-100 [&_[data-title]]:dark:!text-emerald-50",
+            "dark:!bg-primary-950/90 dark:!border-primary-800 dark:!text-primary-100 [&_[data-title]]:dark:!text-primary-50",
           error:
             "dark:!bg-red-950/90 dark:!border-red-800 dark:!text-red-100 [&_[data-title]]:dark:!text-red-50",
           warning:

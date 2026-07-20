@@ -1,4 +1,5 @@
 import { requireSession, jsonError } from "@/lib/auth-helpers";
+import { isAdminRole } from "@/lib/roles";
 import { validateDateAgainstAppSettings } from "@/lib/app-settings";
 import { prisma } from "@/lib/prisma";
 import { expenseInclude, mapExpense } from "@/lib/expense-mapper";
@@ -38,7 +39,7 @@ export async function PATCH(
     });
     if (!existing) throw new Error("NOT_FOUND");
 
-    const isAdmin = session.user.role === "ADMIN";
+    const isAdmin = isAdminRole(session.user.role ?? "");
     if (!isAdmin && existing.addedByUserId !== session.user.id) {
       throw new Error("FORBIDDEN");
     }
@@ -115,7 +116,7 @@ export async function DELETE(
     });
     if (!existing) throw new Error("NOT_FOUND");
 
-    const isAdmin = session.user.role === "ADMIN";
+    const isAdmin = isAdminRole(session.user.role ?? "");
     if (!isAdmin && existing.addedByUserId !== session.user.id) {
       throw new Error("FORBIDDEN");
     }

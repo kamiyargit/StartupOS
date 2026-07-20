@@ -1,6 +1,6 @@
-# Upload built tarball + compose files to VPS, then load images and start cuty-expenses stack.
+# Upload built tarball + compose files to VPS, then load images and start kartin stack.
 # Does NOT prune or restart cuty-platform containers (isolated deploy).
-# Set $env:VPS_HOST, $env:VPS_USER; optional: $env:VPS_PATH (default /opt/cuty-expenses), $env:CUTY_PLATFORM_PATH (default /opt/cuty-platform).
+# Set $env:VPS_HOST, $env:VPS_USER; optional: $env:VPS_PATH (default /opt/kartin), $env:CUTY_PLATFORM_PATH (default /opt/cuty-platform).
 # Run from repo root: .\scripts\upload-and-deploy.ps1
 #   .\scripts\upload-and-deploy.ps1 -SkipNginxUpdate   # skip cuty-platform nginx reload
 param(
@@ -16,12 +16,12 @@ Set-Location $Root
 . (Join-Path $PSScriptRoot 'lib\verify-vps-deploy.ps1')
 
 $OutDir = if ($env:OUT_DIR) { $env:OUT_DIR } else { Join-Path $Root "dist" }
-$TarName = "cuty-expenses-images.tar"
+$TarName = "kartin-images.tar"
 $TarPath = Join-Path $OutDir $TarName
 
 $VPS_HOST = $env:VPS_HOST
 $VPS_USER = $env:VPS_USER
-$VPS_PATH = if ($env:VPS_PATH) { $env:VPS_PATH } else { "/opt/cuty-expenses" }
+$VPS_PATH = if ($env:VPS_PATH) { $env:VPS_PATH } else { "/opt/kartin" }
 $CUTY_PLATFORM_PATH = if ($env:CUTY_PLATFORM_PATH) { $env:CUTY_PLATFORM_PATH } else { "/opt/cuty-platform" }
 $VPS_SSH_KEY = $env:VPS_SSH_KEY
 
@@ -37,7 +37,7 @@ if (-not $VPS_USER) {
 
 if ($VPS_PATH -notmatch '^/') {
     Write-Host ""
-    Write-Host "VPS_PATH must be an absolute path (e.g. /opt/cuty-expenses), not '$VPS_PATH'." -ForegroundColor Red
+    Write-Host "VPS_PATH must be an absolute path (e.g. /opt/kartin), not '$VPS_PATH'." -ForegroundColor Red
     exit 1
 }
 
@@ -62,7 +62,7 @@ try {
     Initialize-VpsSshSession -VpsHost $VPS_HOST -VpsUser $VPS_USER -SshKey $VPS_SSH_KEY
 
     Write-Host ""
-    Write-Host "Deploy target : ${VPS_PATH} (cuty-expenses stack)" -ForegroundColor Cyan
+    Write-Host "Deploy target : ${VPS_PATH} (kartin stack)" -ForegroundColor Cyan
     Write-Host "Cuty platform : ${CUTY_PLATFORM_PATH} (nginx only - expenses.cuty.center)" -ForegroundColor Cyan
     Write-Host ""
 
@@ -108,18 +108,18 @@ try {
     }
 
     Write-Host ""
-    Write-Host "Loading images and starting cuty-expenses containers (isolated - no cuty-platform prune)..." -ForegroundColor Green
+    Write-Host "Loading images and starting kartin containers (isolated - no cuty-platform prune)..." -ForegroundColor Green
     Invoke-RemoteShell "sed -i 's/\r$//' ensure-prod-base-images.sh && sh ensure-prod-base-images.sh" "Ensuring postgres:16-alpine and nginx:alpine on VPS..."
     Invoke-RemoteShell "docker load -i ${TarName}" "Loading app image from tarball..."
-    Invoke-RemoteShell "docker compose -f docker-compose.prod.yml up -d --no-build --pull never --force-recreate" "Starting cuty-expenses stack..."
+    Invoke-RemoteShell "docker compose -f docker-compose.prod.yml up -d --no-build --pull never --force-recreate" "Starting kartin stack..."
 
     Write-Host "Ensuring proxy is on cuty-platform Docker network ..." -ForegroundColor DarkGray
-    $null = Invoke-VpsSsh "docker network connect cuty-platform_cuty-network cuty-expenses-proxy 2>/dev/null || docker network connect cuty-network cuty-expenses-proxy 2>/dev/null || true"
+    $null = Invoke-VpsSsh "docker network connect cuty-platform_cuty-network kartin-proxy 2>/dev/null || docker network connect cuty-network kartin-proxy 2>/dev/null || true"
 
     Write-Host "Waiting for app to become healthy (up to 2 min) ..." -ForegroundColor DarkGray
     if (-not (Wait-VpsExpensesAppHealthy)) {
-        Invoke-VpsSsh "docker logs cuty-expenses-app --tail 50" -ShowOutput | Out-Host
-        throw "cuty-expenses-app did not become healthy. Check logs above."
+        Invoke-VpsSsh "docker logs kartin-app --tail 50" -ShowOutput | Out-Host
+        throw "kartin-app did not become healthy. Check logs above."
     }
 
     if (-not $SkipNginxUpdate) {

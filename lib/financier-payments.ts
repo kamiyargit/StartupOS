@@ -1,6 +1,7 @@
 import { FinancierPaymentKind } from "@prisma/client";
 import { Role } from "@prisma/client";
 import { isDateBeforeMinJalaliYear, minJalaliYearErrorMessage } from "@/lib/dates";
+import { isAdminRole } from "@/lib/roles";
 
 export type { FinancierPaymentKind };
 
@@ -44,7 +45,7 @@ export function canManageFinancierSharePayment(
   expense: ExpenseForPermission,
   share: ShareForPermission,
 ): boolean {
-  if (session.role === "ADMIN") return true;
+  if (isAdminRole(String(session.role))) return true;
   if (expense.addedByUserId === session.id) return true;
   if (share.userId === session.id) return true;
   return false;

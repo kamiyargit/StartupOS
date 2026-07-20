@@ -5,7 +5,7 @@ import { mapMeetingMinutes } from "@/lib/meeting-minutes-mapper";
 
 const include = {
   createdBy: true,
-  attachments: true,
+  attachments: { where: { deletedAt: null } },
 } as const;
 
 export async function GET(
@@ -16,8 +16,8 @@ export async function GET(
     await requireSession();
     const { id } = await params;
 
-    const item = await prisma.meetingMinutes.findUnique({
-      where: { id },
+    const item = await prisma.meetingMinutes.findFirst({
+      where: { id, deletedAt: null },
       include,
     });
 
@@ -37,7 +37,7 @@ export async function PATCH(
     const { id } = await params;
     const body = await req.json();
 
-    const existing = await prisma.meetingMinutes.findUnique({ where: { id } });
+    const existing = await prisma.meetingMinutes.findFirst({ where: { id, deletedAt: null } });
     if (!existing) throw new Error("NOT_FOUND");
 
     if (body.meetingDate) {
@@ -104,10 +104,13 @@ export async function DELETE(
     await requireAdmin();
     const { id } = await params;
 
-    const existing = await prisma.meetingMinutes.findUnique({ where: { id } });
+    const existing = await prisma.meetingMinutes.findFirst({ where: { id, deletedAt: null } });
     if (!existing) throw new Error("NOT_FOUND");
 
-    await prisma.meetingMinutes.delete({ where: { id } });
+    await prisma.meetingMinutes.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
 
     return Response.json({ ok: true });
   } catch (error) {

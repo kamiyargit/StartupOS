@@ -101,7 +101,7 @@ export function FileUpload({ value, onChange }: FileUploadProps) {
         onDragOver={(e) => e.preventDefault()}
         onDrop={onDrop}
         className={cn(
-          "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 p-6 text-center transition hover:border-emerald-400 dark:border-gh-border dark:bg-gh-canvas-subtle/50 dark:hover:border-emerald-600 sm:p-8",
+          "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 p-6 text-center transition hover:border-primary-400 dark:border-gh-border dark:bg-gh-canvas-subtle/50 dark:hover:border-primary-600 sm:p-8",
           uploading && "opacity-80",
         )}
       >
@@ -126,7 +126,7 @@ export function FileUpload({ value, onChange }: FileUploadProps) {
         <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-3 dark:border-gh-border dark:bg-gh-canvas-subtle">
           <div className="flex items-center justify-between text-sm">
             <span className="truncate text-slate-600 dark:text-gh-fg-muted">{currentFile}</span>
-            <span className="shrink-0 text-emerald-700 dark:text-emerald-400">{progress}%</span>
+            <span className="shrink-0 text-primary-700 dark:text-primary-400">{progress}%</span>
           </div>
           <Progress value={progress} />
         </div>
@@ -143,9 +143,9 @@ export function FileUpload({ value, onChange }: FileUploadProps) {
             >
               <div className="flex min-w-0 items-center gap-2 text-sm">
                 {f.mimeType.startsWith("image/") ? (
-                  <ImageIcon className="h-4 w-4 shrink-0 text-emerald-600" />
+                  <ImageIcon className="h-4 w-4 shrink-0 text-primary-600" />
                 ) : (
-                  <FileText className="h-4 w-4 shrink-0 text-emerald-600" />
+                  <FileText className="h-4 w-4 shrink-0 text-primary-600" />
                 )}
                 <span className="truncate">{f.fileName}</span>
                 {f.sizeBytes !== undefined && (

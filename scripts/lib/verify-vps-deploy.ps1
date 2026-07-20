@@ -1,4 +1,4 @@
-# Shared post-deploy checks for cuty-expenses + cuty-platform safety.
+# Shared post-deploy checks for kartin + cuty-platform safety.
 
 function Get-VpsSshOutput {
     param([Parameter(Mandatory)][string]$RemoteCommand)
@@ -18,7 +18,7 @@ function Get-VpsSshOutput {
 
 function Wait-VpsExpensesAppHealthy {
     param(
-        [string]$ContainerName = 'cuty-expenses-app',
+        [string]$ContainerName = 'kartin-app',
         [int]$MaxAttempts = 24,
         [int]$SleepSeconds = 5
     )
@@ -44,7 +44,7 @@ function Test-CutyPlatformNginxRunning {
 
 function Invoke-CutyPlatformNginxReload {
     param(
-        [string]$VpsExpensesPath = '/opt/cuty-expenses',
+        [string]$VpsExpensesPath = '/opt/kartin',
         [string]$CutyPlatformPath = '/opt/cuty-platform'
     )
 
@@ -86,11 +86,11 @@ function Write-CutyPlatformSafetyCheck {
         Write-Host "[WARN] Could not probe ${MainHost} from cuty-nginx (site may use HTTPS redirect only)" -ForegroundColor Yellow
     }
 
-    $expProbe = Get-VpsSshOutput "docker exec ${NginxContainer} wget -qO- --timeout=8 --header='Host: expenses.cuty.center' http://cuty-expenses-proxy/login 2>&1 | head -c 120"
+    $expProbe = Get-VpsSshOutput "docker exec ${NginxContainer} wget -qO- --timeout=8 --header='Host: expenses.cuty.center' http://kartin-proxy/login 2>&1 | head -c 120"
     if ($expProbe.ExitCode -eq 0 -and $expProbe.Output.Length -gt 0) {
         Write-Host "[OK]   expenses.cuty.center reachable from cuty-nginx" -ForegroundColor Green
     } else {
         Write-Host "[WARN] expenses.cuty.center probe from cuty-nginx failed" -ForegroundColor Yellow
-        Write-Host "       Ensure cuty-expenses-proxy is on cuty-platform_cuty-network" -ForegroundColor DarkGray
+        Write-Host "       Ensure kartin-proxy is on cuty-platform_cuty-network" -ForegroundColor DarkGray
     }
 }

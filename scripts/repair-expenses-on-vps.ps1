@@ -15,7 +15,7 @@ Set-Location $Root
 
 $VPS_HOST = $env:VPS_HOST
 $VPS_USER = $env:VPS_USER
-$VPS_PATH = if ($env:VPS_PATH) { $env:VPS_PATH } else { "/opt/cuty-expenses" }
+$VPS_PATH = if ($env:VPS_PATH) { $env:VPS_PATH } else { "/opt/kartin" }
 $CUTY_PLATFORM_PATH = if ($env:CUTY_PLATFORM_PATH) { $env:CUTY_PLATFORM_PATH } else { "/opt/cuty-platform" }
 $CUTY_NETWORK = if ($env:CUTY_DOCKER_NETWORK) { $env:CUTY_DOCKER_NETWORK } else { "cuty-platform_cuty-network" }
 $VPS_SSH_KEY = $env:VPS_SSH_KEY
@@ -63,21 +63,21 @@ try {
     }
     $null = Invoke-VpsSsh "sed -i 's/\r$//' ${VPS_PATH}/.env ${VPS_PATH}/docker/entrypoint.prod.sh && chmod +x ${VPS_PATH}/docker/entrypoint.prod.sh"
 
-    Write-Host "Restarting cuty-expenses stack ..." -ForegroundColor Yellow
+    Write-Host "Restarting kartin stack ..." -ForegroundColor Yellow
     $upCode = Invoke-Remote "cd ${VPS_PATH} && docker compose -f docker-compose.prod.yml up -d --pull never --force-recreate" "docker compose up -d ..."
     if ($upCode -ne 0) {
         Write-Host "docker compose up failed (exit $upCode). App logs:" -ForegroundColor Red
-        Invoke-VpsSsh "docker logs cuty-expenses-app --tail 80" -ShowOutput | Out-Host
+        Invoke-VpsSsh "docker logs kartin-app --tail 80" -ShowOutput | Out-Host
         exit 1
     }
 
     Write-Host "Ensuring proxy is on ${CUTY_NETWORK} ..." -ForegroundColor Yellow
-    Invoke-Remote "docker network connect ${CUTY_NETWORK} cuty-expenses-proxy 2>/dev/null || true" "network connect (idempotent)"
+    Invoke-Remote "docker network connect ${CUTY_NETWORK} kartin-proxy 2>/dev/null || true" "network connect (idempotent)"
 
     Write-Host "Waiting for app health (up to 2 min) ..." -ForegroundColor Yellow
     if (-not (Wait-VpsExpensesAppHealthy)) {
         Write-Host "App did not become healthy. App logs:" -ForegroundColor Red
-        Invoke-VpsSsh "docker logs cuty-expenses-app --tail 80" -ShowOutput | Out-Host
+        Invoke-VpsSsh "docker logs kartin-app --tail 80" -ShowOutput | Out-Host
         exit 1
     }
 

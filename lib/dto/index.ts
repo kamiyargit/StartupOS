@@ -9,6 +9,7 @@ export type UserDTO = {
   position: string | null;
   avatarUrl: string | null;
   role: Role;
+  isSuperAdmin?: boolean;
   isActive: boolean;
   isFinancier: boolean;
   sharePercent: string;
@@ -26,8 +27,87 @@ export type CostFactorTypeDTO = {
   expenseCount: number;
 };
 
+export type PaginatedResponse<T> = {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
+export type TaskDTO = {
+  id: string;
+  boardId: string;
+  categoryId: string | null;
+  categoryName: string | null;
+  assigneeId: string | null;
+  assigneeName: string | null;
+  createdById: string;
+  createdByName: string;
+  title: string;
+  description: string | null;
+  priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+  status: string;
+  dueDate: string | null;
+  dueDateJalali: string | null;
+  sortOrder: number;
+  labels: { id: string; name: string; color: string }[];
+  acknowledgements: {
+    id: string;
+    userId: string;
+    userName: string;
+    acknowledgedAt: string | null;
+    note: string | null;
+  }[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type IncomeRecordDTO = {
+  id: string;
+  sourceId: string | null;
+  sourceName: string | null;
+  categoryId: string | null;
+  categoryName: string | null;
+  amount: string;
+  currency: Currency;
+  description: string | null;
+  incomeDate: string;
+  incomeDateJalali: string;
+  paymentStatus: "PENDING" | "RECEIVED" | "PARTIAL" | "CANCELLED";
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type InvoiceDTO = {
+  id: string;
+  number: string;
+  sourceId: string | null;
+  sourceName: string | null;
+  status: "DRAFT" | "SENT" | "PAID" | "OVERDUE" | "CANCELLED";
+  issueDate: string;
+  issueDateJalali: string;
+  dueDate: string;
+  dueDateJalali: string;
+  currency: Currency;
+  subtotal: string;
+  notes: string | null;
+  incomeId: string | null;
+  lineItems: { id: string; description: string; quantity: string; unitPrice: string; total: string }[];
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type AppSettingsDTO = {
   minJalaliYear: number;
+  twoFactorPolicy: "OPTIONAL" | "MANDATORY";
+  appName: string;
+  appNameShort: string;
+  appNameFa: string;
+  tagline: string | null;
+  logoUrl: string | null;
+  iconUrl: string | null;
+  themeColor: string;
   updatedAt: string;
 };
 
@@ -120,8 +200,12 @@ export type DashboardStats = {
   byType: { typeId: string; name: string; color: string; amount: string; currency: Currency }[];
   byMonthToman: { month: string; amount: string }[];
   byMonthUsd: { month: string; amount: string }[];
+  byMonthIncomeToman: { month: string; amount: string }[];
+  byMonthIncomeUsd: { month: string; amount: string }[];
   byYearToman: { year: string; amount: string }[];
   byYearUsd: { year: string; amount: string }[];
+  byYearIncomeToman: { year: string; amount: string }[];
+  byYearIncomeUsd: { year: string; amount: string }[];
   financierTotals: {
     userId: string;
     userName: string;
@@ -135,4 +219,11 @@ export type DashboardStats = {
     owedToMe: string;
     iOwe: string;
   }[];
+  totalIncomeToman: string;
+  periodIncomeToman: string;
+  totalIncomeUsd: string;
+  periodIncomeUsd: string;
+  profitLossToman: string;
+  profitLossUsd: string;
+  byIncomeCategory: { categoryId: string; name: string; color: string; amount: string; currency: Currency }[];
 };

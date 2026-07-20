@@ -12,15 +12,15 @@ export {
   verifyTwoFactorTicket,
 } from "@/lib/two-factor-tokens";
 
-const APP_NAME = "Cuty expense";
+const APP_NAME = "Kartin";
 
 export function createTotpSecret() {
   return generateSecret();
 }
 
-export function buildOtpAuthUri(label: string, secret: string) {
+export function buildOtpAuthUri(label: string, secret: string, issuer = APP_NAME) {
   return generateURI({
-    issuer: APP_NAME,
+    issuer,
     label,
     secret,
   });

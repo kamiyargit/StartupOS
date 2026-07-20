@@ -1,47 +1,81 @@
+name: kartin
+
 services:
   db:
     image: postgres:16-alpine
+    container_name: kartin-db-dev
     restart: unless-stopped
     environment:
-      POSTGRES_USER: cuty
-      POSTGRES_PASSWORD: cuty
-      POSTGRES_DB: cuty_financial
+      POSTGRES_USER: kartin
+      POSTGRES_PASSWORD: kartin
+      POSTGRES_DB: kartin
     ports:
       - "5433:5432"
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
+      - ./docker/init-control-db.sh:/docker-entrypoint-initdb.d/01-init-control-db.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U cuty -d cuty_financial"]
+      test: ["CMD-SHELL", "pg_isready -U kartin -d kartin"]
       interval: 5s
       timeout: 5s
       retries: 5
+
+  # One-shot: ensure kartin_control exists (works even when postgres volume already exists).
+  db-init:
+    image: postgres:16-alpine
+    container_name: kartin-db-init
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: kartin
+    entrypoint:
+      - sh
+      - -c
+      - |
+        psql -h db -U kartin -d kartin -tc "SELECT 1 FROM pg_database WHERE datname = 'kartin_control'" | grep -q 1 \
+          || psql -h db -U kartin -d kartin -c "CREATE DATABASE kartin_control";
+        echo "Control database ready"
+    restart: "no"
 
   app:
     build:
       context: .
       dockerfile: docker/Dockerfile.dev
+    container_name: kartin-app-dev
     restart: unless-stopped
     ports:
       - "5568:3000"
     environment:
-      DATABASE_URL: postgresql://cuty:cuty@db:5432/cuty_financial
+      KARTIN_UNIFIED_DEV: "true"
+      KARTIN_MODE: cloud
+      DATABASE_URL: postgresql://kartin:kartin@db:5432/kartin
+      DATABASE_URL_CONTROL: postgresql://kartin:kartin@db:5432/kartin_control
+      TENANT_DATABASE_URL: postgresql://kartin:kartin@db:5432/kartin
       AUTH_SECRET: dev-secret-change-in-production-min-32-chars
       NEXTAUTH_URL: http://localhost:5568
       ADMIN_USERNAME: admin
-      ADMIN_EMAIL: admin@cuty.center
+      ADMIN_EMAIL: admin@kartin.local
       ADMIN_PASSWORD: admin123
       UPLOAD_DIR: /app/uploads
       MAX_UPLOAD_MB: 10
+      SMS_PROVIDER: dev
+      NEXT_PUBLIC_SETUP_PORTAL_URL: http://localhost:5568/setup
+      NEXT_PUBLIC_SETUP_HOST: localhost:5568
+      NEXT_PUBLIC_BASE_DOMAIN: localhost
+      NEXT_PUBLIC_TENANT_PORT: "5568"
       WATCHPACK_POLLING: "true"
       CHOKIDAR_USEPOLLING: "true"
       CHOKIDAR_INTERVAL: "1000"
     volumes:
       - .:/app
       - /app/node_modules
+      - /app/.next
       - upload_data_dev:/app/uploads
     depends_on:
-      db:
-        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+    command: sh -c "npx prisma db push --schema=prisma/control/schema.prisma && sh docker/entrypoint.dev.sh"
 
 volumes:
   postgres_data_dev:

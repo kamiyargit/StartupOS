@@ -14,8 +14,29 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         login: { label: "Email or Username", type: "text" },
         password: { label: "Password", type: "password" },
         twoFactorTicket: { label: "2FA Ticket", type: "text" },
+        setupLoginToken: { label: "Setup Login Token", type: "text" },
       },
       async authorize(credentials) {
+        const setupLoginToken = credentials?.setupLoginToken as string | undefined;
+        if (setupLoginToken) {
+          const { verifySetupLoginToken } = await import("@/lib/installation/setup-login-token");
+          const payload = verifySetupLoginToken(setupLoginToken);
+          if (!payload) return null;
+          const { prisma } = await import("@/lib/prisma");
+          const user = await prisma.user.findUnique({ where: { id: payload.sub } });
+          if (!user?.isActive) return null;
+          return toSessionUser({
+            id: user.id,
+            name: user.fullName,
+            email: user.email,
+            role: user.role,
+            username: user.username,
+            avatarUrl: user.avatarUrl,
+            twoFactorEnabled: user.twoFactorEnabled,
+            twoFactorSecret: user.twoFactorSecret,
+          });
+        }
+
         const login = credentials?.login as string | undefined;
         const password = credentials?.password as string | undefined;
         const twoFactorTicket = credentials?.twoFactorTicket as string | undefined;

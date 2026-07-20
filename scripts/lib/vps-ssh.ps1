@@ -53,7 +53,7 @@ function Test-VpsSshPasswordless {
 function Enable-VpsSshAskPass {
     param([string]$Password)
 
-    $script:VpsAskPassDir = Join-Path $env:TEMP "cuty-expenses-ssh-$([Guid]::NewGuid().ToString('N'))"
+    $script:VpsAskPassDir = Join-Path $env:TEMP "kartin-ssh-$([Guid]::NewGuid().ToString('N'))"
     New-Item -ItemType Directory -Force -Path $script:VpsAskPassDir | Out-Null
 
     $pwFile = Join-Path $script:VpsAskPassDir 'password.txt'
@@ -181,7 +181,7 @@ function Initialize-VpsSshSession {
     if (-not (Test-Path $sshDir)) {
         New-Item -ItemType Directory -Force -Path $sshDir | Out-Null
     }
-    $script:VpsSshControlPath = Join-Path $sshDir 'cuty-expenses-deploy-%C'
+    $script:VpsSshControlPath = Join-Path $sshDir 'kartin-deploy-%C'
 
     if (Initialize-VpsSshMultiplex -BaseOpts $base) {
         return
